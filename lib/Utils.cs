@@ -144,6 +144,20 @@ internal static class Utils
         }
     }
 
+    public static Rectangle WithOrigin(this Rectangle rectangle, Point position)
+    {
+        rectangle.X = position.X - rectangle.Width / 2;
+        rectangle.Y = position.Y - rectangle.Height / 2;
+        return rectangle;
+    }
+
+    public static Point GetOrigin(this Rectangle rectangle)
+    {
+        int x = rectangle.X + rectangle.Width / 2;
+        int y = rectangle.Y + rectangle.Height / 2;
+        return new(x,y);
+    }
+
     //Math
     public static float center(float x, float x2, float size)   => (x + x2) / 2 - size / 2;
     public static float center(float x, float size)             => x / 2 - size / 2;

@@ -1,9 +1,9 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
-using Myra.Graphics2D.Brushes;
-using Myra.Graphics2D.UI;
-using Myra.Graphics2D.UI.Properties;
+using Lib;
+
+using static Lib.Utils;
 
 namespace tasks;
 
@@ -22,50 +22,77 @@ public class Card
     }
 }
 
-public class DrawCard
+public class UICard
 {
     //Static
     public static readonly Color bodyColor = new(90, 90, 90);
-    public const int minRectHeight = 64;
+    public const int minRectHeight = bannerHeight + 4 * (UITaskBox.taskHeight + tasksOffset) + tasksMargin * 2;
     public const int rectWidth = 256;
-    public const int bannerHeight = 24;
+    public const int bannerHeight = 32;
+    public const int tasksOffset = 4;
+    public const int tasksMargin = 6;
 
-    //Draw
+    //Main
     public Rectangle Rectangle => rectangle;
     private Rectangle rectangle;
-    
-    //Main card
+    private List<UITaskBox> UITaskBoxes;
+
+    //Card    
     public Card Card => card;
     private Card card;
-
-    private List<TaskBox> tasks;
     
-    public DrawCard(Card card)
+    public UICard(Card card)
     {
-        tasks = new();
+        this.card = card;
+        int rectHeight = bannerHeight + card.Tasks.Count * (UITaskBox.taskHeight + tasksOffset) + tasksMargin * 2;
+        rectHeight = Math.Max(rectHeight, minRectHeight);
 
-        const int span = 4;
-        int y = bannerHeight + span;
-        
+        UITaskBoxes = new();
+        rectangle = new Rectangle(0, 0, rectWidth, rectHeight);
+
         foreach (KeyValuePair<string, bool> task in card.Tasks)
         {
-            tasks.Add(new TaskBox(task.Key, task.Value, this, y));
-            y += TaskBox.taskHeight + span;
+            UITaskBoxes.Add(new UITaskBox(task.Key, task.Value, this));
         }
-        
-        rectangle = new Rectangle(0, 0, rectWidth, minRectHeight * 6);
-        this.card = card;
     }
 
-    public void Update() => tasks.ForEach(t => t.Update());
-
-    public void Draw(SpriteBatch spriteBatch)
+    public bool Update(Point position)
     {
+        rectangle.Location = position;
+
+        Point taskboxPos = position;
+        taskboxPos.X += UITaskBox.taskMargin;
+        taskboxPos.Y += UICard.bannerHeight;
+
+        foreach(UITaskBox taskbox in UITaskBoxes) 
+        {
+            taskboxPos.Y += UITaskBox.taskMargin;
+            taskbox.Update(taskboxPos);
+            taskboxPos.Y += UITaskBox.taskHeight;
+        }
+        
+        Rectangle bannerRect = rectangle with { Height = bannerHeight };
+        return bannerRect.Contains(Input.Mouse.Position) && Input.LBPressed();
+    }
+
+    public void Draw(SpriteBatch spriteBatch, Point position)
+    {
+        rectangle.Location = position;
+
         spriteBatch.FillRectangle(rectangle, bodyColor);
         
         Rectangle banner = rectangle with { Height = bannerHeight };
         spriteBatch.FillRectangle(banner, card.BannerColor);
         
-        tasks.ForEach(t => t.Draw(spriteBatch));
+        Point taskboxPos = position;
+        taskboxPos.X += UITaskBox.taskMargin;
+        taskboxPos.Y += UICard.bannerHeight;
+
+        foreach(UITaskBox taskbox in UITaskBoxes) 
+        {
+            taskboxPos.Y += UITaskBox.taskMargin;
+            taskbox.Draw(spriteBatch, taskboxPos);
+            taskboxPos.Y += UITaskBox.taskHeight;
+        }
     }
 }

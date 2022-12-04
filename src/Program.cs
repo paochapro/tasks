@@ -5,6 +5,8 @@ using Myra;
 using Myra.Graphics2D.UI;
 using Lib;
 
+using static Lib.Utils;
+
 namespace tasks;
 
 public class Tasks : Game
@@ -15,19 +17,58 @@ public class Tasks : Game
     private GraphicsDeviceManager graphics;
     private SpriteBatch spriteBatch;
 
-    //Something
-    private Point screen = new(800,600);
-    public Point Screen => screen;
+    //Window
+    private Point screen;
+    public Point Screen
+    {
+        get => screen;
+        set  {
+            screen = value;
+            graphics.PreferredBackBufferWidth = screen.X;
+            graphics.PreferredBackBufferHeight = screen.Y;
+            graphics.ApplyChanges();
+        }
+    }
+
     private readonly Color clearColor = new(100,100,100,255);
     private const string gameName = "Tasks";
     
     //Main fields
     private Desktop desktop;
-    private List<DrawCard> cards = new();
+    private UICard? dragCard = null;
+    private List<UICard> UICards = new();
 
     protected override void Update(GameTime gameTime)
     {
-        cards.ForEach(c => c.Update());
+        Point cardPos = Point.Zero;
+        cardPos.X += 64;
+        cardPos.Y += 16 / 2;
+
+        if(Input.LBReleased())
+        {
+            dragCard = null;
+        } 
+
+
+        double dragPos = Input.Mouse.Position.ToVector2().X - 64 + 16/2;
+        int placeCardIndex = (int)Math.Floor(dragPos / (UICard.rectWidth + 16));
+        placeCardIndex = clamp(placeCardIndex, 0, UICards.Count);
+
+        if(dragCard == null) {
+            foreach(UICard card in UICards) 
+            {
+                bool isDragging = card.Update(cardPos);
+
+                if(isDragging)
+                {
+                    dragCard = card;
+                    break;
+                }
+
+                cardPos.X += UICard.rectWidth + 16;
+            }
+        }
+
         Input.CycleEnd();
         base.Update(gameTime);
     }
@@ -38,7 +79,18 @@ public class Tasks : Game
         
         spriteBatch.Begin();
         {
-            cards.ForEach(c => c.Draw(spriteBatch));
+            Point cardPos = Point.Zero;
+            cardPos.X += 64;
+            cardPos.Y += 16 / 2;
+
+            foreach(UICard card in UICards.Except(new[] {dragCard}))
+            {
+                card.Draw(spriteBatch, cardPos);
+                cardPos.X += UICard.rectWidth + 16;
+            }
+
+            Point dragCardPos = Input.Mouse.Position - new Point(UICard.rectWidth, UICard.bannerHeight) / new Point(2, 2);
+            dragCard?.Draw(spriteBatch, dragCardPos);
         }
         spriteBatch.End();
     }
@@ -58,28 +110,22 @@ public class Tasks : Game
         card.Tasks.Add("wata", true);
         card.Tasks.Add("ata", false);
  
-        
-        cards.Add(new DrawCard(card));
+        UICards.Add(new UICard(card));
+        UICards.Add(new UICard(card));
+        UICards.Add(new UICard(card));
         
         base.LoadContent();
     }
 
     protected override void Initialize()
     {
+        Screen = new(1400,800);
         Window.Title = gameName;
         Window.AllowUserResizing = false;
         IsMouseVisible = true;
         base.Initialize();
     }
-    
-    public void ChangeScreenSize(Point size)
-    {
-        screen = size;
-        graphics.PreferredBackBufferWidth = size.X;
-        graphics.PreferredBackBufferHeight = size.Y;
-        graphics.ApplyChanges();
-    }
-    
+
     public Tasks()
     {
         graphics = new GraphicsDeviceManager(this);

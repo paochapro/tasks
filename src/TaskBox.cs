@@ -6,7 +6,7 @@ using Lib;
 
 namespace tasks;
 
-public class TaskBox
+public class UITaskBox
 {
     //Static
     public static readonly Color hoverColorAddition = new Color(10, 10, 10);
@@ -15,7 +15,7 @@ public class TaskBox
     public const int checkboxSize = 24;
     public const int taskHeight = 32;
     public const int taskMargin = 4;
-    public const int taskWidth = DrawCard.rectWidth - taskMargin*2;
+    public const int taskWidth = UICard.rectWidth - taskMargin*2;
     public const int checkboxMargin = (taskHeight-checkboxSize) / 2;
     public const int checkMargin = 4;
 
@@ -27,18 +27,20 @@ public class TaskBox
     private bool hover = false;
     private string taskDescription = "";
     private Rectangle rectangle;
-    private DrawCard owner;
+    private UICard owner;
 
-    public TaskBox(string taskDescription, bool isChecked, DrawCard owner, int y)
+    public UITaskBox(string taskDescription, bool isChecked, UICard owner)
     {
         this.taskDescription = taskDescription;
         this.isChecked = isChecked;
         this.owner = owner;
-        rectangle = new Rectangle(taskMargin, y, taskWidth, taskHeight);
+        rectangle = new Rectangle(0, 0, taskWidth, taskHeight);
     }
     
-    public void Update()
+    public void Update(Point position)
     {
+        rectangle.Location = position;
+
         hover = rectangle.Contains(Input.Mouse.Position);
 
         if (Input.LBPressed() && hover)
@@ -48,11 +50,13 @@ public class TaskBox
         }
     }
 
-    public void Draw(SpriteBatch spriteBatch)
+    public void Draw(SpriteBatch spriteBatch, Point position)
     {
+        rectangle.Location = position;
+        
         Point checkboxPos = new(rectangle.Right - checkboxSize - checkboxMargin, rectangle.Bottom - checkboxSize - checkboxMargin);
         Rectangle checkbox = new Rectangle(checkboxPos, new Point(checkboxSize,checkboxSize));
-        
+
         if (hover) {
             spriteBatch.FillRectangle(rectangle, bodyColor);
             spriteBatch.FillRectangle(checkbox, checkboxColor);
