@@ -14,21 +14,27 @@ public class TasksProgram : Game
     public SpriteBatch SpriteBatch => spriteBatch;
     private GraphicsDeviceManager graphics;
     private SpriteBatch spriteBatch;
+
+    //Other stuff
     private Assets assets;
-    private SpriteFont textFont;
     private UI ui;
+    private SpriteFont textFont;
     private readonly Color clearColor = new(100,100,100,255);
 
     public SpriteFont TextFont => textFont;
 
     //Window settings
     private Point screen;
-    public Point Screen { get => screen; set {
-        screen = value;
-        graphics.PreferredBackBufferWidth = value.X;
-        graphics.PreferredBackBufferHeight = value.Y;
-        graphics.ApplyChanges();
-    }}
+    public Point Screen
+    { 
+        get => screen; 
+        set {
+            screen = value;
+            graphics.PreferredBackBufferWidth = value.X;
+            graphics.PreferredBackBufferHeight = value.Y;
+            graphics.ApplyChanges();
+        }
+    }
 
     private const string gameName = "Tasks";
     
@@ -37,16 +43,14 @@ public class TasksProgram : Game
     private UICard? dragCard;
     private int placeCardIndex;
 
+    //Card placement
+    private const int cardStartOffset = 16;
+
     protected override void Update(GameTime gameTime)
     {
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-        //Start card position
-        Point cardPos = Point.Zero;
-        cardPos.X += 64;
-        cardPos.Y += 16 / 2;
-
-        //Reset place card index, because it could stay at some value, when user isnt dragging card
+        Point cardPos = new Point(cardStartOffset);
         placeCardIndex = 0;
 
         //If we are not dragging - update all cards
@@ -61,6 +65,7 @@ public class TasksProgram : Game
                 {
                     dragCard = card;
                     uiCards.Remove(card);
+                    cardPos = new Point(cardStartOffset);
                     break;
                 }
 
@@ -74,7 +79,7 @@ public class TasksProgram : Game
             Vector2 mousePos = Input.Mouse.Position.ToVector2();
 
             //Calculating the index in card list at which we are hovering when dragging a card
-            double dragPos = mousePos.X - 64 + 16/2;
+            double dragPos = mousePos.X - cardStartOffset/2;
             placeCardIndex = (int)Math.Floor(dragPos / (UICard.rectWidth + 16));
             placeCardIndex = clamp(placeCardIndex, 0, uiCards.Count);
 
@@ -125,9 +130,7 @@ public class TasksProgram : Game
             if(dragCard != null)
             {
                 //Calculating place rect pos
-                Point placePos = Point.Zero;
-                placePos.X += 64;
-                placePos.Y += 16 / 2;
+                Point placePos = new Point(cardStartOffset);
 
                 placePos.X += placeCardIndex * (UICard.rectWidth + 16);
 

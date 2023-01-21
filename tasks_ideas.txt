@@ -1,0 +1,6 @@
+tasks ideas
+
+when hovering on something show possible actions (with hotkeys) in bottom bar
+menu on bottom
+cards should have + for adding tasks and a wheel for changing colors
+F2 when hovering on card title or task description should rename it

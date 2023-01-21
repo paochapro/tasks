@@ -50,11 +50,13 @@ public class UITaskBox
     {
         hover = rectangle.Contains(Input.Mouse.Position);
 
-        if (Input.LBPressed() && hover)
-        {
+        if(!hover) return;
+
+        if(Input.MBPressed())
+            owner.RemoveTask(this);
+
+        if(Input.LBPressed())
             isChecked = !isChecked;
-            owner.Card.Tasks[description] = isChecked;
-        }
     }
 
     public void Draw(SpriteBatch spriteBatch)

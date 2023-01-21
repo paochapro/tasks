@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 
 using Lib;
+using static Lib.Utils;
 
 namespace tasks;
 
@@ -27,13 +28,13 @@ public class UICard
     public static readonly Color bodyColor = new(90, 90, 90);
     public const int minRectHeight = 64;
     public const int rectWidth = 256;
-    public const int bannerHeight = 24;
+    public const int bannerHeight = 32; //24;
+    public const int cardButtonsWidth = bannerHeight;
 
     //Properties
     public Card Card => card;
     public Rectangle Rectangle => rectangle;
     public bool IsBeingDragged => isBeingDragged;
-
 
     //Fields
     private Rectangle rectangle;
@@ -41,22 +42,27 @@ public class UICard
     private Card card;
     private TasksProgram program;
     private bool isBeingDragged;
+
+    private UITaskBox taskBoxToRemove;
+    private Color colorWheelButtonClr;
+    private Color addTaskButtonClr;
     
     public UICard(TasksProgram program, Card card)
     {
-        //Calculating the rect height based on how many tasks given card has
-        int rectHeight = bannerHeight + card.Tasks.Count * (UITaskBox.taskHeight + UITaskBox.tasksOffset) + UITaskBox.taskMargin * 2;
-        rectHeight = Math.Max(rectHeight, minRectHeight);
-
         //Init stuff
-        rectangle = new Rectangle(0, 0, rectWidth, rectHeight);
+        rectangle = new Rectangle(0, 0, rectWidth, 0);
+
         uiTaskBoxes = new();
         this.card = card;
+        this.program = program;
+
+        colorWheelButtonClr = Color.White;
+        addTaskButtonClr = Color.White;
 
         //Adding ui taskboxes
         foreach (KeyValuePair<string, bool> task in card.Tasks)
         {
-            uiTaskBoxes.Add(new UITaskBox(program, task.Key, task.Value, this));
+            AddTask(new UITaskBox(program, task.Key, task.Value, this));
         }
     }
 
@@ -64,9 +70,13 @@ public class UICard
     {
         //Update our location
         rectangle.Location = position;
+        UpdateTaskBoxesPosition();
+    }
 
+    private void UpdateTaskBoxesPosition()
+    {
         //Update taskboxes location
-        Point taskboxPos = position;
+        Point taskboxPos = rectangle.Location;
         taskboxPos.X += UITaskBox.taskMargin;
         taskboxPos.Y += UICard.bannerHeight;
 
@@ -80,6 +90,10 @@ public class UICard
 
     public void Update(float dt)
     {
+        taskBoxToRemove = null;
+        addTaskButtonClr = Color.White;
+        colorWheelButtonClr = Color.White;
+
         //If we are being dragged - check if user released mouse1 to stop dragging this card
         //And do not update anything else
         if(isBeingDragged)
@@ -88,24 +102,100 @@ public class UICard
             return;
         }
 
-        foreach(UITaskBox taskbox in uiTaskBoxes)
-            taskbox.Update(dt);
+        var updateTaskBoxes = () => {
+            UpdateTaskBoxesPosition();
+            
+            //Update taskboxes
+            foreach(UITaskBox taskbox in uiTaskBoxes)
+                taskbox.Update(dt);
 
-        //Check if user clicked on the banner to start dragging this card
+            //Remove the taskbox that user deleted during update
+            if(taskBoxToRemove != null)
+                RemoveTaskInstantly(taskBoxToRemove);
+        };
+
         Rectangle bannerRect = rectangle with { Height = bannerHeight };
+
+        //Check if user clicked on + sign
+        Rectangle taskButtonRect = bannerRect with { Width = cardButtonsWidth };
+        taskButtonRect.X = bannerRect.Right - taskButtonRect.Width;
+
+        if(taskButtonRect.Contains(Input.Mouse.Position))
+        {
+            addTaskButtonClr = Color.Black;
+
+            if(Input.LBPressed())
+                AddTask(new UITaskBox(program, "empty", false, this));
+
+            updateTaskBoxes();
+            return;
+        }
+
+        //Check if user clicked on color wheel
+        Rectangle colorWheelRect = taskButtonRect;
+        colorWheelRect.X = taskButtonRect.Left - colorWheelRect.Width;
+
+        if(colorWheelRect.Contains(Input.Mouse.Position))
+        {
+            //Popup the color changing window
+            colorWheelButtonClr = Color.Black;
+
+            if(Input.LBPressed())
+                print("Color wheel button");
+
+            return;
+        }
+        
+        //Check if user clicked on the banner to start dragging this card
         isBeingDragged = bannerRect.Contains(Input.Mouse.Position) && Input.LBPressed();
+        updateTaskBoxes();
     }
 
     public void Draw(SpriteBatch spriteBatch)
     {
-        //Drawing main body
+        //Main body
         spriteBatch.FillRectangle(rectangle, bodyColor);
         
-        //Drawing banner
+        //Banner
         Rectangle banner = rectangle with { Height = bannerHeight };
         spriteBatch.FillRectangle(banner, card.BannerColor);
 
-        //Drawing task boxes
+        //Banner title
+        Vector2 measure = program.TextFont.MeasureString(card.Title);
+        Vector2 rectPos = banner.Location.ToVector2();
+        float offset = (banner.Height / 2 - measure.Y / 2);
+        Vector2 titlePos = rectPos + new Vector2(offset);
+
+        int darkValue = 60; 
+
+        Color bannerTitleColor = card.BannerColor;
+        bannerTitleColor.R = (byte)clamp(bannerTitleColor.R - darkValue, 0, 255);
+        bannerTitleColor.G = (byte)clamp(bannerTitleColor.G - darkValue, 0, 255);
+        bannerTitleColor.B = (byte)clamp(bannerTitleColor.B - darkValue, 0, 255);
+        spriteBatch.DrawString(program.TextFont, card.Title, titlePos, bannerTitleColor);
+
+        //Add task and color wheel buttons
+        Rectangle taskButtonRect = banner with { Width = cardButtonsWidth };
+        taskButtonRect.X = banner.Right - taskButtonRect.Width;
+        spriteBatch.FillRectangle(taskButtonRect, addTaskButtonClr);
+
+        Rectangle colorWheelRect = taskButtonRect;
+        colorWheelRect.X = taskButtonRect.Left - colorWheelRect.Width;
+        spriteBatch.FillRectangle(colorWheelRect, colorWheelButtonClr);
+
+        //Task boxes
         uiTaskBoxes.ForEach(tb => tb.Draw(spriteBatch));
+    }
+
+    public void RemoveTask(UITaskBox taskBox) => taskBoxToRemove = taskBox;
+    private void AddTask(UITaskBox taskBox) { uiTaskBoxes.Add(taskBox); UpdateRectHeight(); }
+    private void RemoveTaskInstantly(UITaskBox taskBox) { uiTaskBoxes.Remove(taskBox); UpdateRectHeight(); }
+
+    private void UpdateRectHeight()
+    {
+        //Calculating the rect height based on how many tasks given card has
+        int rectHeight = bannerHeight + uiTaskBoxes.Count * (UITaskBox.taskHeight + UITaskBox.tasksOffset) + UITaskBox.taskMargin * 2;
+        rectHeight = Math.Max(rectHeight, minRectHeight);
+        rectangle.Height = rectHeight;
     }
 }
