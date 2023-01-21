@@ -36,11 +36,14 @@ public class UITaskBox
         this.owner = owner;
         rectangle = new Rectangle(0, 0, taskWidth, taskHeight);
     }
-    
-    public void Update(Point position)
+
+    public void UpdatePosition(Point position)
     {
         rectangle.Location = position;
-
+    }
+    
+    public void Update(float dt)
+    {
         hover = rectangle.Contains(Input.Mouse.Position);
 
         if (Input.LBPressed() && hover)
@@ -50,21 +53,25 @@ public class UITaskBox
         }
     }
 
-    public void Draw(SpriteBatch spriteBatch, Point position)
+    public void Draw(SpriteBatch spriteBatch)
     {
-        rectangle.Location = position;
-        
         Point checkboxPos = new(rectangle.Right - checkboxSize - checkboxMargin, rectangle.Bottom - checkboxSize - checkboxMargin);
         Rectangle checkbox = new Rectangle(checkboxPos, new Point(checkboxSize,checkboxSize));
 
+        Color rectColor = new Color();
+        Color checkBoxColor = new Color();
+
         if (hover) {
-            spriteBatch.FillRectangle(rectangle, bodyColor);
-            spriteBatch.FillRectangle(checkbox, checkboxColor);
+            rectColor = bodyColor;
+            checkBoxColor = checkboxColor;
         }
         else {
-            spriteBatch.FillRectangle(rectangle, new Color(bodyColor.ToVector3() - hoverColorAddition.ToVector3()));
-            spriteBatch.FillRectangle(checkbox, new Color(checkboxColor.ToVector3() - hoverColorAddition.ToVector3()));
+            rectColor = new Color(bodyColor.ToVector3() - hoverColorAddition.ToVector3());
+            checkBoxColor = new Color(checkboxColor.ToVector3() - hoverColorAddition.ToVector3());
         }
+
+        spriteBatch.FillRectangle(rectangle, rectColor);
+        spriteBatch.FillRectangle(checkbox, checkBoxColor);
 
         if (isChecked)
         {

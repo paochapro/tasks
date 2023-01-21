@@ -24,7 +24,7 @@ public class Card
 
 public class UICard
 {
-    //Static
+    //Static style vars
     public static readonly Color bodyColor = new(90, 90, 90);
     public const int minRectHeight = bannerHeight + 4 * (UITaskBox.taskHeight + tasksOffset) + tasksMargin * 2;
     public const int rectWidth = 256;
@@ -34,65 +34,80 @@ public class UICard
 
     //Main
     public Rectangle Rectangle => rectangle;
-    private Rectangle rectangle;
-    private List<UITaskBox> UITaskBoxes;
+    public bool IsBeingDragged => isBeingDragged;
 
-    //Card    
+    private Rectangle rectangle;
+    private List<UITaskBox> uiTaskBoxes;
+    private bool isBeingDragged;
+
+    //Data card    
     public Card Card => card;
     private Card card;
     
     public UICard(Card card)
     {
-        this.card = card;
+        //Calculating the rect height based on how many tasks given card has
         int rectHeight = bannerHeight + card.Tasks.Count * (UITaskBox.taskHeight + tasksOffset) + tasksMargin * 2;
         rectHeight = Math.Max(rectHeight, minRectHeight);
 
-        UITaskBoxes = new();
+        //Init stuff
         rectangle = new Rectangle(0, 0, rectWidth, rectHeight);
+        uiTaskBoxes = new();
+        this.card = card;
 
+        //Adding ui taskboxes
         foreach (KeyValuePair<string, bool> task in card.Tasks)
         {
-            UITaskBoxes.Add(new UITaskBox(task.Key, task.Value, this));
+            uiTaskBoxes.Add(new UITaskBox(task.Key, task.Value, this));
         }
     }
 
-    public bool Update(Point position)
+    public void UpdatePosition(Point position)
     {
+        //Update our location
         rectangle.Location = position;
 
+        //Update taskboxes location
         Point taskboxPos = position;
         taskboxPos.X += UITaskBox.taskMargin;
         taskboxPos.Y += UICard.bannerHeight;
 
-        foreach(UITaskBox taskbox in UITaskBoxes) 
+        foreach(UITaskBox taskbox in uiTaskBoxes) 
         {
             taskboxPos.Y += UITaskBox.taskMargin;
-            taskbox.Update(taskboxPos);
+            taskbox.UpdatePosition(taskboxPos);
             taskboxPos.Y += UITaskBox.taskHeight;
         }
-        
-        Rectangle bannerRect = rectangle with { Height = bannerHeight };
-        return bannerRect.Contains(Input.Mouse.Position) && Input.LBPressed();
     }
 
-    public void Draw(SpriteBatch spriteBatch, Point position)
+    public void Update(float dt)
     {
-        rectangle.Location = position;
+        //If we are being dragged - check if user released mouse1 to stop dragging this card
+        //And do not update anything else
+        if(isBeingDragged)
+        {
+            isBeingDragged = !Input.LBReleased();
+            return;
+        }
 
+        foreach(UITaskBox taskbox in uiTaskBoxes)
+            taskbox.Update(dt);
+
+        //Check if user clicked on the banner to start dragging this card
+        Rectangle bannerRect = rectangle with { Height = bannerHeight };
+        isBeingDragged = bannerRect.Contains(Input.Mouse.Position) && Input.LBPressed();
+    }
+
+    public void Draw(SpriteBatch spriteBatch)
+    {
+        //Drawing main body
         spriteBatch.FillRectangle(rectangle, bodyColor);
         
+        //Drawing banner
         Rectangle banner = rectangle with { Height = bannerHeight };
         spriteBatch.FillRectangle(banner, card.BannerColor);
-        
-        Point taskboxPos = position;
-        taskboxPos.X += UITaskBox.taskMargin;
-        taskboxPos.Y += UICard.bannerHeight;
 
-        foreach(UITaskBox taskbox in UITaskBoxes) 
-        {
-            taskboxPos.Y += UITaskBox.taskMargin;
-            taskbox.Draw(spriteBatch, taskboxPos);
-            taskboxPos.Y += UITaskBox.taskHeight;
-        }
+        //Drawing task boxes
+        uiTaskBoxes.ForEach(tb => tb.Draw(spriteBatch));
     }
 }

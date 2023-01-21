@@ -1,45 +1,74 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Content;
 
 using static Lib.Utils;
 
 namespace Lib;
 
-static class Assets
+class Assets
 {
-    static public Microsoft.Xna.Framework.Content.ContentManager Content;
+    private ContentManager content;
+    private Texture2D errorTexture;
 
-    static private void ContentAvaliable()
+    private Dictionary<Type, object> defaultAssets;
+
+    public Assets(ContentManager content)
     {
-        if (Content == null)
+        this.content = content;
+
+        defaultAssets = new() {
+            [typeof(Texture2D)] = content.Load<Texture2D>("error"),
+            [typeof(SpriteFont)] = content.Load<SpriteFont>("bahnschrift"),
+        };
+    }
+
+    private void ContentAvaliable()
+    {
+        if (content == null)
             throw new Exception("content is null in MonoGame");
     }
+    private bool AssetExists(string asset)
+    {
+        ContentAvaliable();
+        return File.Exists(content.RootDirectory + @"\" + asset + ".xnb");
+    }
 
-    static public T? Load<T>(string asset)
+    public T? Load<T>(string asset) where T: class
     {
         ContentAvaliable();
 
         if (!AssetExists(asset))
         {
-            print("No asset \"" + asset + "\" was found in MonoGame:Load");
-            return default(T);
+            print("\""+asset+"\" wasn't found in MonoGame:Load");
+
+            T assetObj = default(T);
+            Type assetType = typeof(T);
+
+            if(defaultAssets.ContainsKey(assetType))
+                assetObj = defaultAssets[assetType] as T;
+            
+            return assetObj;
         }
-        return Content.Load<T>(asset);
+        return content.Load<T>(asset);
     }
-    static public Texture2D LoadTexture(string asset)
+    public Texture2D LoadTexture(string asset)
     {
         ContentAvaliable();
 
         if (!AssetExists(asset))
         {
-            print("No texture \"" + asset + "\" was found in MonoGame:Load");
-            asset = "error";
+            print("\""+asset+"\" texture wasn't found in MonoGame:Load");
+            return errorTexture;
         }
 
-        return Content.Load<Texture2D>(asset);
+        return content.Load<Texture2D>(asset);
     }
-    static private bool AssetExists(string asset)
+    public T GetDefault<T>() where T: class 
     {
-        ContentAvaliable();
-        return File.Exists(Content.RootDirectory + @"\" + asset + ".xnb");
-    }
+        Type assetType = typeof(T);
+        if(defaultAssets.ContainsKey(assetType))
+            return defaultAssets[assetType] as T;
+        else
+            throw new Exception("No default asset for " + assetType.Name + " asset type (Asset:GetDefault)");
+    } 
 }
