@@ -6,7 +6,7 @@ using Lib;
 
 namespace tasks;
 
-public class TaskBox
+public class UITaskBox
 {
     //Static
     public static readonly Color hoverColorAddition = new Color(10, 10, 10);
@@ -15,9 +15,10 @@ public class TaskBox
     public const int checkboxSize = 24;
     public const int taskHeight = 32;
     public const int taskMargin = 4;
-    public const int taskWidth = DrawCard.rectWidth - taskMargin*2;
+    public const int taskWidth = UICard.rectWidth - taskMargin*2;
     public const int checkboxMargin = (taskHeight-checkboxSize) / 2;
     public const int checkMargin = 4;
+    public const int tasksOffset = 4;
 
     private bool IsChecked => isChecked;
     private bool IsHovered => hover;
@@ -27,17 +28,22 @@ public class TaskBox
     private bool hover = false;
     private string taskDescription = "";
     private Rectangle rectangle;
-    private DrawCard owner;
+    private UICard owner;
 
-    public TaskBox(string taskDescription, bool isChecked, DrawCard owner, int y)
+    public UITaskBox(string taskDescription, bool isChecked, UICard owner)
     {
         this.taskDescription = taskDescription;
         this.isChecked = isChecked;
         this.owner = owner;
-        rectangle = new Rectangle(taskMargin, y, taskWidth, taskHeight);
+        rectangle = new Rectangle(0, 0, taskWidth, taskHeight);
+    }
+
+    public void UpdatePosition(Point position)
+    {
+        rectangle.Location = position;
     }
     
-    public void Update()
+    public void Update(float dt)
     {
         hover = rectangle.Contains(Input.Mouse.Position);
 
@@ -52,15 +58,21 @@ public class TaskBox
     {
         Point checkboxPos = new(rectangle.Right - checkboxSize - checkboxMargin, rectangle.Bottom - checkboxSize - checkboxMargin);
         Rectangle checkbox = new Rectangle(checkboxPos, new Point(checkboxSize,checkboxSize));
-        
+
+        Color rectColor = new Color();
+        Color checkBoxColor = new Color();
+
         if (hover) {
-            spriteBatch.FillRectangle(rectangle, bodyColor);
-            spriteBatch.FillRectangle(checkbox, checkboxColor);
+            rectColor = bodyColor;
+            checkBoxColor = checkboxColor;
         }
         else {
-            spriteBatch.FillRectangle(rectangle, new Color(bodyColor.ToVector3() - hoverColorAddition.ToVector3()));
-            spriteBatch.FillRectangle(checkbox, new Color(checkboxColor.ToVector3() - hoverColorAddition.ToVector3()));
+            rectColor = new Color(bodyColor.ToVector3() - hoverColorAddition.ToVector3());
+            checkBoxColor = new Color(checkboxColor.ToVector3() - hoverColorAddition.ToVector3());
         }
+
+        spriteBatch.FillRectangle(rectangle, rectColor);
+        spriteBatch.FillRectangle(checkbox, checkBoxColor);
 
         if (isChecked)
         {

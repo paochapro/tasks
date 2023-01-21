@@ -1,9 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
-using Myra.Graphics2D.Brushes;
-using Myra.Graphics2D.UI;
-using Myra.Graphics2D.UI.Properties;
+
+using Lib;
 
 namespace tasks;
 
@@ -22,9 +21,9 @@ public class Card
     }
 }
 
-public class DrawCard
+public class UICard
 {
-    //Static
+    //Static style vars
     public static readonly Color bodyColor = new(90, 90, 90);
     public const int minRectHeight = 64;
     public const int rectWidth = 256;
@@ -32,40 +31,82 @@ public class DrawCard
 
     //Draw
     public Rectangle Rectangle => rectangle;
+    public bool IsBeingDragged => isBeingDragged;
+
     private Rectangle rectangle;
-    
-    //Main card
+    private List<UITaskBox> uiTaskBoxes;
+    private bool isBeingDragged;
+
+    //Data card    
     public Card Card => card;
     private Card card;
 
-    private List<TaskBox> tasks;
+    private List<UITaskBox> tasks;
     
-    public DrawCard(Card card)
+    public UICard(Card card)
     {
-        tasks = new();
+        //Calculating the rect height based on how many tasks given card has
+        int rectHeight = bannerHeight + card.Tasks.Count * (UITaskBox.taskHeight + UITaskBox.tasksOffset) + UITaskBox.taskMargin * 2;
+        rectHeight = Math.Max(rectHeight, minRectHeight);
 
-        const int span = 4;
-        int y = bannerHeight + span;
-        
+        //Init stuff
+        rectangle = new Rectangle(0, 0, rectWidth, rectHeight);
+        uiTaskBoxes = new();
+        this.card = card;
+
+        //Adding ui taskboxes
         foreach (KeyValuePair<string, bool> task in card.Tasks)
         {
-            tasks.Add(new TaskBox(task.Key, task.Value, this, y));
-            y += TaskBox.taskHeight + span;
+            uiTaskBoxes.Add(new UITaskBox(task.Key, task.Value, this));
         }
-        
-        rectangle = new Rectangle(0, 0, rectWidth, minRectHeight * 6);
-        this.card = card;
     }
 
-    public void Update() => tasks.ForEach(t => t.Update());
+    public void UpdatePosition(Point position)
+    {
+        //Update our location
+        rectangle.Location = position;
+
+        //Update taskboxes location
+        Point taskboxPos = position;
+        taskboxPos.X += UITaskBox.taskMargin;
+        taskboxPos.Y += UICard.bannerHeight;
+
+        foreach(UITaskBox taskbox in uiTaskBoxes) 
+        {
+            taskboxPos.Y += UITaskBox.taskMargin;
+            taskbox.UpdatePosition(taskboxPos);
+            taskboxPos.Y += UITaskBox.taskHeight;
+        }
+    }
+
+    public void Update(float dt)
+    {
+        //If we are being dragged - check if user released mouse1 to stop dragging this card
+        //And do not update anything else
+        if(isBeingDragged)
+        {
+            isBeingDragged = !Input.LBReleased();
+            return;
+        }
+
+        foreach(UITaskBox taskbox in uiTaskBoxes)
+            taskbox.Update(dt);
+
+        //Check if user clicked on the banner to start dragging this card
+        Rectangle bannerRect = rectangle with { Height = bannerHeight };
+        isBeingDragged = bannerRect.Contains(Input.Mouse.Position) && Input.LBPressed();
+    }
 
     public void Draw(SpriteBatch spriteBatch)
     {
+        //Drawing main body
         spriteBatch.FillRectangle(rectangle, bodyColor);
         
+        //Drawing banner
         Rectangle banner = rectangle with { Height = bannerHeight };
         spriteBatch.FillRectangle(banner, card.BannerColor);
-        
-        tasks.ForEach(t => t.Draw(spriteBatch));
+
+        //Drawing task boxes
+        uiTaskBoxes.ForEach(tb => tb.Draw(spriteBatch));
     }
 }

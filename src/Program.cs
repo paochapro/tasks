@@ -1,9 +1,9 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
-using Myra;
-using Myra.Graphics2D.UI;
 using Lib;
+
+using static Lib.Utils;
 
 namespace tasks;
 
@@ -14,20 +14,94 @@ public class Tasks : Game
     public SpriteBatch SpriteBatch => spriteBatch;
     private GraphicsDeviceManager graphics;
     private SpriteBatch spriteBatch;
+    private Assets assets;
+    private SpriteFont textFont;
+    private UI ui;
 
     //Something
-    private Point screen = new(800,600);
-    public Point Screen => screen;
+    public Point Screen;
     private readonly Color clearColor = new(100,100,100,255);
     private const string gameName = "Tasks";
     
     //Main fields
-    private Desktop desktop;
-    private List<DrawCard> cards = new();
+    private List<UICard> uiCards = new();
+    private UICard? dragCard;
+    private int placeCardIndex;
 
     protected override void Update(GameTime gameTime)
     {
-        cards.ForEach(c => c.Update());
+        float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+        //Start card position
+        Point cardPos = Point.Zero;
+        cardPos.X += 64;
+        cardPos.Y += 16 / 2;
+
+        //Reset place card index, because it could stay at some value, when user isnt dragging card
+        placeCardIndex = 0;
+
+        //If we are not dragging - update all cards
+        if(dragCard == null)
+        {
+            foreach(UICard card in uiCards) 
+            {
+                card.UpdatePosition(cardPos);
+                card.Update(dt);
+
+                if(card.IsBeingDragged)
+                {
+                    dragCard = card;
+                    uiCards.Remove(card);
+                    break;
+                }
+
+                cardPos.X += UICard.rectWidth + 16;
+            }
+        }
+
+        //If we are dragging, update only drag card
+        if(dragCard != null)
+        {
+            Vector2 mousePos = Input.Mouse.Position.ToVector2();
+
+            //Calculating the index in card list at which we are hovering when dragging a card
+            double dragPos = mousePos.X - 64 + 16/2;
+            placeCardIndex = (int)Math.Floor(dragPos / (UICard.rectWidth + 16));
+            placeCardIndex = clamp(placeCardIndex, 0, uiCards.Count);
+
+            //Update other cards position
+            foreach(UICard card in uiCards)
+            {
+                //If we are hovering on this card move it to left side
+                if(card == uiCards.ElementAtOrDefault(placeCardIndex))
+                    cardPos.X += UICard.rectWidth + 16;
+
+                card.UpdatePosition(cardPos);
+
+                cardPos.X += UICard.rectWidth + 16;
+            }
+
+            //Update drag card position
+            Vector2 bannerSize = new Vector2(UICard.rectWidth, UICard.bannerHeight);
+            Vector2 dragCardPos = mousePos - bannerSize / 2;
+
+            dragCard.UpdatePosition(dragCardPos.ToPoint());
+            dragCard.Update(dt); //should remade this
+
+            if(!dragCard.IsBeingDragged)
+            {
+                //Insert drag card at place index
+                uiCards.Insert(placeCardIndex, dragCard);
+
+                //Not dragging card anymore
+                dragCard = null;
+            }
+        }
+
+        lbl_placeCardIndex.text = "placeCardIndex: " + placeCardIndex;
+        lbl_dt.text = "dt: " + dt.ToString();
+
+        ui.UpdateElements(Input.Keys, Input.Mouse);
         Input.CycleEnd();
         base.Update(gameTime);
     }
@@ -38,16 +112,47 @@ public class Tasks : Game
         
         spriteBatch.Begin();
         {
-            cards.ForEach(c => c.Draw(spriteBatch));
+            //Drawing place rect
+            if(dragCard != null)
+            {
+                //Calculating place rect pos
+                Point placePos = Point.Zero;
+                placePos.X += 64;
+                placePos.Y += 16 / 2;
+
+                placePos.X += placeCardIndex * (UICard.rectWidth + 16);
+
+                //Place rect
+                Rectangle placeRect = new(placePos, new(UICard.rectWidth, dragCard.Rectangle.Height));
+
+                spriteBatch.DrawRectangle(placeRect, Color.White, 2);
+            }
+
+            //Drawing cards
+            foreach(UICard card in uiCards)
+                card.Draw(spriteBatch);
+
+            dragCard?.Draw(spriteBatch);
+
+            //Drawing lib ui
+            ui.DrawElements(spriteBatch);
         }
         spriteBatch.End();
     }
 
+    Label lbl_placeCardIndex;
+    Label lbl_dt;
     protected override void LoadContent()
     {
         spriteBatch = new(GraphicsDevice);
-        Assets.Content = Content;
-        MyraEnvironment.Game = this;
+        assets = new Assets(Content);
+        textFont = assets.GetDefault<SpriteFont>();
+        ui = new UI(this);
+        //MyraEnvironment.Game = this;
+
+        lbl_placeCardIndex = new(ui, Point.Zero, "placeCardIndex: #", Color.Red);
+        lbl_dt = new(ui, new Point(0, 30), "dt: #", Color.Red);
+        Button button = new Button(ui, new Rectangle(500,300,200,50), () => print("hello"), "Say hello");
 
         Card card = new Card("simple task", Color.Lime);
         
@@ -58,14 +163,16 @@ public class Tasks : Game
         card.Tasks.Add("wata", true);
         card.Tasks.Add("ata", false);
  
-        
-        cards.Add(new DrawCard(card));
+        uiCards.Add(new UICard(card));
+        uiCards.Add(new UICard(card));
+        uiCards.Add(new UICard(card));
         
         base.LoadContent();
     }
 
     protected override void Initialize()
     {
+        Screen = new(1600,800);
         Window.Title = gameName;
         Window.AllowUserResizing = false;
         IsMouseVisible = true;
@@ -74,7 +181,7 @@ public class Tasks : Game
     
     public void ChangeScreenSize(Point size)
     {
-        screen = size;
+        Screen = size;
         graphics.PreferredBackBufferWidth = size.X;
         graphics.PreferredBackBufferHeight = size.Y;
         graphics.ApplyChanges();
