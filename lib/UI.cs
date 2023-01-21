@@ -56,8 +56,6 @@ public class UI
         //Mouse cursor
         if(MouseCursor == prevMouseCursor) return;
 
-        print("Update mouse cursor");
-
         Mouse.SetCursor(MouseCursor);
     }
     public void DrawElements(SpriteBatch spriteBatch)

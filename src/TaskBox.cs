@@ -20,21 +20,24 @@ public class UITaskBox
     public const int checkMargin = 4;
     public const int tasksOffset = 4;
 
-    private bool IsChecked => isChecked;
-    private bool IsHovered => hover;
-    private Rectangle Rectangle => rectangle;
+    //public bool IsChecked => isChecked;
+    //public bool IsHovered => hover;
+    //public Rectangle Rectangle => rectangle;
     
+    private UICard owner;
+    private Rectangle rectangle;
     private bool isChecked = false;
     private bool hover = false;
-    private string taskDescription = "";
-    private Rectangle rectangle;
-    private UICard owner;
+    private string description = "";
+    private SpriteFont textFont;
 
-    public UITaskBox(string taskDescription, bool isChecked, UICard owner)
+    //Description
+    public UITaskBox(TasksProgram program, string description, bool isChecked, UICard owner)
     {
-        this.taskDescription = taskDescription;
+        this.description = description;
         this.isChecked = isChecked;
         this.owner = owner;
+        this.textFont = program.TextFont;
         rectangle = new Rectangle(0, 0, taskWidth, taskHeight);
     }
 
@@ -50,7 +53,7 @@ public class UITaskBox
         if (Input.LBPressed() && hover)
         {
             isChecked = !isChecked;
-            owner.Card.Tasks[taskDescription] = isChecked;
+            owner.Card.Tasks[description] = isChecked;
         }
     }
 
@@ -81,5 +84,12 @@ public class UITaskBox
             check.Size -= new Point(checkMargin * 2);
             spriteBatch.FillRectangle(check, owner.Card.BannerColor);
         }
+
+        //Description
+        Vector2 rectPos = rectangle.Location.ToVector2();
+        Vector2 measure = textFont.MeasureString(description);
+        float y = rectPos.Y + (rectangle.Height / 2 - measure.Y / 2);
+        float x = rectPos.X + (y - rectPos.Y);
+        spriteBatch.DrawString(textFont, description, new Vector2(x,y), Color.White);
     }
 }

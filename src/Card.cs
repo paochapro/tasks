@@ -29,21 +29,20 @@ public class UICard
     public const int rectWidth = 256;
     public const int bannerHeight = 24;
 
-    //Draw
+    //Properties
+    public Card Card => card;
     public Rectangle Rectangle => rectangle;
     public bool IsBeingDragged => isBeingDragged;
 
+
+    //Fields
     private Rectangle rectangle;
     private List<UITaskBox> uiTaskBoxes;
-    private bool isBeingDragged;
-
-    //Data card    
-    public Card Card => card;
     private Card card;
-
-    private List<UITaskBox> tasks;
+    private TasksProgram program;
+    private bool isBeingDragged;
     
-    public UICard(Card card)
+    public UICard(TasksProgram program, Card card)
     {
         //Calculating the rect height based on how many tasks given card has
         int rectHeight = bannerHeight + card.Tasks.Count * (UITaskBox.taskHeight + UITaskBox.tasksOffset) + UITaskBox.taskMargin * 2;
@@ -57,7 +56,7 @@ public class UICard
         //Adding ui taskboxes
         foreach (KeyValuePair<string, bool> task in card.Tasks)
         {
-            uiTaskBoxes.Add(new UITaskBox(task.Key, task.Value, this));
+            uiTaskBoxes.Add(new UITaskBox(program, task.Key, task.Value, this));
         }
     }
 

@@ -7,7 +7,7 @@ using static Lib.Utils;
 
 namespace tasks;
 
-public class Tasks : Game
+public class TasksProgram : Game
 {
     //Graphics
     public GraphicsDeviceManager Graphics => graphics;
@@ -17,10 +17,19 @@ public class Tasks : Game
     private Assets assets;
     private SpriteFont textFont;
     private UI ui;
-
-    //Something
-    public Point Screen;
     private readonly Color clearColor = new(100,100,100,255);
+
+    public SpriteFont TextFont => textFont;
+
+    //Window settings
+    private Point screen;
+    public Point Screen { get => screen; set {
+        screen = value;
+        graphics.PreferredBackBufferWidth = value.X;
+        graphics.PreferredBackBufferHeight = value.Y;
+        graphics.ApplyChanges();
+    }}
+
     private const string gameName = "Tasks";
     
     //Main fields
@@ -132,10 +141,10 @@ public class Tasks : Game
             foreach(UICard card in uiCards)
                 card.Draw(spriteBatch);
 
-            dragCard?.Draw(spriteBatch);
-
             //Drawing lib ui
             ui.DrawElements(spriteBatch);
+
+            dragCard?.Draw(spriteBatch);
         }
         spriteBatch.End();
     }
@@ -152,42 +161,48 @@ public class Tasks : Game
 
         lbl_placeCardIndex = new(ui, Point.Zero, "placeCardIndex: #", Color.Red);
         lbl_dt = new(ui, new Point(0, 30), "dt: #", Color.Red);
-        Button button = new Button(ui, new Rectangle(500,300,200,50), () => print("hello"), "Say hello");
 
-        Card card = new Card("simple task", Color.Lime);
-        
-        card.Tasks.Add("lol", true);
-        card.Tasks.Add("whata", false);
-        card.Tasks.Add("wh", false);
-        card.Tasks.Add("rth", true);
-        card.Tasks.Add("wata", true);
-        card.Tasks.Add("ata", false);
- 
-        uiCards.Add(new UICard(card));
-        uiCards.Add(new UICard(card));
-        uiCards.Add(new UICard(card));
+        //Randomized cards
+        var addRandomizedCards = () => {
+            uiCards.Clear();
+
+            for(int c = 0; c < Rnd.Int(2,6); ++c)
+            {
+                Color color = Color.White;
+                color.R = (byte)Rnd.Int(0,255);
+                color.G = (byte)Rnd.Int(0,255);
+                color.B = (byte)Rnd.Int(0,255);
+
+                Card card = new Card("card " + c, color);
+                
+                for(int t = 0; t < Rnd.Int(3,12); ++t)
+                {
+                    string taskText = "task " + t;
+                    bool isChecked = Convert.ToBoolean(Rnd.Int(0,1));
+                    card.Tasks.Add(taskText, isChecked);
+                }
+                
+                uiCards.Add(new UICard(this, card));
+            }
+        };
+
+        Button button = new Button(ui, new Rectangle(500,700,200,50), addRandomizedCards, "Generate random");
+
+        addRandomizedCards();
         
         base.LoadContent();
     }
 
     protected override void Initialize()
     {
-        Screen = new(1600,800);
+        Screen = new(1400,800);
         Window.Title = gameName;
         Window.AllowUserResizing = false;
         IsMouseVisible = true;
         base.Initialize();
     }
     
-    public void ChangeScreenSize(Point size)
-    {
-        Screen = size;
-        graphics.PreferredBackBufferWidth = size.X;
-        graphics.PreferredBackBufferHeight = size.Y;
-        graphics.ApplyChanges();
-    }
-    
-    public Tasks()
+    public TasksProgram()
     {
         graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "content";
@@ -196,7 +211,7 @@ public class Tasks : Game
 
 class Program {
     static void Main() {
-        using(Tasks tasks = new Tasks())
-            tasks.Run();
+        using(TasksProgram program = new TasksProgram())
+            program.Run();
     }
 }
