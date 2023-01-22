@@ -27,6 +27,7 @@ public class UITaskBox
 
     public bool QueuedForRemoval => queuedForRemoval;
     public bool IsBeingDragged => isBeingDragged;
+    public UICard Owner { get => owner; set => owner = value; }
     
     private UICard owner;
     private Rectangle rectangle;

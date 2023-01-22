@@ -189,15 +189,16 @@ public class UICard
             };
 
             float mouseY = Input.Mouse.Position.ToVector2().Y;
-            int dragPos = (int)mouseY - body.Y;
-            int taskCellSpace = UITaskBox.taskHeight + UITaskBox.taskMargin*2;
+            int dragPos = (int)mouseY - (body.Y + UITaskBox.taskMargin);
+            int taskCellSpace = UITaskBox.taskHeight + UITaskBox.taskMargin;
             placeTaskIndex = dragPos / taskCellSpace;
             placeTaskIndex = clamp(placeTaskIndex, 0, uiTaskBoxes.Count);
             program.Label_placeTaskIndex.text = "placeTaskIndex: " + placeTaskIndex;
 
             UpdateTaskBoxesPosition();
 
-            dragTask?.Update(dt);
+            dragTask.Owner = this;
+            dragTask.Update(dt);
 
             if(!dragTask.IsBeingDragged)
             {
