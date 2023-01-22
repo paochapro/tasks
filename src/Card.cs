@@ -46,6 +46,12 @@ public class UICard
     private bool isBeingDragged;
     private bool queuedForRemoval;
 
+    //Dragging task
+    private UITaskBox? dragTask;
+    private int placeTaskIndex;
+    public UITaskBox? DragTask { get => dragTask; set => dragTask = value; }
+    public int PlaceCardIndex => placeTaskIndex; 
+
     private Color colorWheelButtonClr;
     private Color addTaskButtonClr;
     
@@ -78,15 +84,21 @@ public class UICard
     private void UpdateTaskBoxesPosition()
     {
         //Update taskboxes location
+        int total = UICard.bannerHeight + UITaskBox.taskMargin;
         Point taskboxPos = rectangle.Location;
         taskboxPos.X += UITaskBox.taskMargin;
-        taskboxPos.Y += UICard.bannerHeight;
+        taskboxPos.Y += total;
 
         foreach(UITaskBox taskbox in uiTaskBoxes) 
         {
-            taskboxPos.Y += UITaskBox.taskMargin;
+            bool draggedTaskInThisCard = dragTask != null;
+            bool userWantsToInsertHere = taskbox == uiTaskBoxes.ElementAtOrDefault(placeTaskIndex);
+
+            if(draggedTaskInThisCard && userWantsToInsertHere)
+                taskboxPos.Y += total;
+
             taskbox.UpdatePosition(taskboxPos);
-            taskboxPos.Y += UITaskBox.taskHeight;
+            taskboxPos.Y += total;
         }
     }
 
@@ -95,7 +107,9 @@ public class UICard
         addTaskButtonClr = Color.White;
         colorWheelButtonClr = Color.White;
 
-        //If we are being dragged - check if user released mouse1 to stop dragging this card
+        //If we are being dragged:
+        //1. Check if user released mouse1 to stop dragging this card
+        //2. Or tries to send it to bin
         //And do not update anything else
         if(isBeingDragged)
         {
@@ -106,20 +120,6 @@ public class UICard
 
             return;
         }
-
-        var updateTaskBoxes = () => {
-            UpdateTaskBoxesPosition();
-            
-            //Update taskboxes
-            foreach(UITaskBox taskbox in uiTaskBoxes)
-                taskbox.Update(dt);
-
-            int removedTaskBoxes = uiTaskBoxes.RemoveAll(tb => tb.QueuedForRemoval);
-
-            if(removedTaskBoxes > 0)
-                UpdateRectHeight();
-        };
-
 
         Rectangle bannerRect = rectangle with { Height = bannerHeight };
 
@@ -134,7 +134,7 @@ public class UICard
             if(Input.LBPressed())
                 AddTask(new UITaskBox(program, "empty", false, this));
 
-            updateTaskBoxes();
+            UpdateTaskBoxes(dt);
             return;
         }
 
@@ -155,7 +155,62 @@ public class UICard
         
         //Check if user clicked on the banner to start dragging this card
         isBeingDragged = bannerRect.Contains(Input.Mouse.Position) && Input.LBPressed();
-        updateTaskBoxes();
+        UpdateTaskBoxes(dt);
+    }
+
+    public void UpdateTaskBoxes(float dt)
+    {
+        placeTaskIndex = 0;
+
+        //Update taskboxes if we arent dragging any task
+        if(dragTask == null)
+        {
+            UpdateTaskBoxesPosition();
+
+            foreach(UITaskBox taskbox in uiTaskBoxes)
+            {
+                taskbox.Update(dt);
+
+                if(taskbox.IsBeingDragged)
+                {
+                    dragTask = taskbox;
+                    uiTaskBoxes.Remove(taskbox);
+                    break;
+                }
+            }
+        }
+
+        //If a dragged task is in our place, update our tasks positions
+        if(dragTask != null)
+        {
+            UpdateTaskBoxesPosition();
+            Rectangle body = rectangle with { 
+                Y = rectangle.Y + bannerHeight, 
+                Height = rectangle.Height - bannerHeight 
+            };
+
+            float mouseY = Input.Mouse.Position.ToVector2().Y;
+            float dragPos = mouseY - body.Y;
+            int taskCellSpace = UITaskBox.taskHeight + UITaskBox.taskMargin;
+            placeTaskIndex = (int)Math.Floor(dragPos / taskCellSpace);
+            placeTaskIndex = clamp(placeTaskIndex, 0, uiTaskBoxes.Count);
+            program.Label_placeTaskIndex.text = "placeTaskIndex: " + placeTaskIndex;
+
+            dragTask?.Update(dt);
+
+            if(!dragTask.IsBeingDragged)
+            {
+                uiTaskBoxes.Insert(placeTaskIndex, dragTask);
+                dragTask = null;
+            }
+        }
+
+        //Remove tasks that are in removal queue 
+        //And update our rect height if we removed some tasks
+        int removedTaskBoxes = uiTaskBoxes.RemoveAll(tb => tb.QueuedForRemoval);
+
+        if(removedTaskBoxes > 0)
+            UpdateRectHeight();
     }
 
     public void Draw(SpriteBatch spriteBatch)
@@ -190,6 +245,18 @@ public class UICard
 
         //Task boxes
         uiTaskBoxes.ForEach(tb => tb.Draw(spriteBatch));
+
+        //Draw place taskbox rect
+        if(dragTask != null)
+        {
+            Rectangle body = new(rectangle.X, banner.Bottom, rectWidth, rectangle.Height - bannerHeight);
+            
+            int y = UITaskBox.taskMargin + (placeTaskIndex * (UITaskBox.taskHeight + UITaskBox.taskMargin));
+            Point placeTaskBoxPos = body.Location + new Point(UITaskBox.taskMargin, y);
+            Point placeTaskSize = new(UITaskBox.taskWidth, UITaskBox.taskHeight);
+            Rectangle placeTaskBox = new(placeTaskBoxPos, placeTaskSize);
+            spriteBatch.DrawRectangle(placeTaskBox, Color.White, 2);
+        }
     }
 
     private void AddTask(UITaskBox taskBox) { uiTaskBoxes.Add(taskBox); UpdateRectHeight(); }

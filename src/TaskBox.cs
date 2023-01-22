@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
 using Lib;
+using static Lib.Utils;
 
 namespace tasks;
 
@@ -25,14 +26,16 @@ public class UITaskBox
     //public Rectangle Rectangle => rectangle;
 
     public bool QueuedForRemoval => queuedForRemoval;
+    public bool IsBeingDragged => isBeingDragged;
     
     private UICard owner;
     private Rectangle rectangle;
     private bool isChecked;
     private bool hover;
-    private bool queuedForRemoval;
     private string description;
+    private bool queuedForRemoval;
     private SpriteFont textFont;
+    private bool isBeingDragged;
 
     //Description
     public UITaskBox(TasksProgram program, string description, bool isChecked, UICard owner)
@@ -51,12 +54,35 @@ public class UITaskBox
     
     public void Update(float dt)
     {
+        if(isBeingDragged)
+        {
+            Vector2 mousePos = Input.Mouse.Position.ToVector2();
+            Vector2 taskSize = new(taskWidth, taskHeight);
+            Vector2 dragTaskPos = mousePos - taskSize / 2;
+            UpdatePosition(dragTaskPos.ToPoint());
+
+            print("Task is being dragged");
+
+            isBeingDragged = !Input.RBReleased();
+
+            return;
+        }
+
         hover = rectangle.Contains(Input.Mouse.Position);
 
         if(!hover) return;
 
         if(Input.MBPressed())
+        {
             queuedForRemoval = true;
+            return;
+        }
+
+        if(Input.RBPressed())
+        {
+            isBeingDragged = true;
+            return;
+        }
 
         if(Input.LBPressed())
             isChecked = !isChecked;

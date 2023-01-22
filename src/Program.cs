@@ -53,7 +53,9 @@ public class TasksProgram : Game
     public Rectangle CardBinRect => cardBinRect;
 
     private Label lbl_placeCardIndex;
+    private Label lbl_placeTaskIndex;
     private Label lbl_dt;
+    public Label Label_placeTaskIndex => lbl_placeTaskIndex;
 
     private List<UICard> cardsToRemove;
 
@@ -61,8 +63,34 @@ public class TasksProgram : Game
     {
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-        Point cardPos = new Point(cardStartOffset);
         placeCardIndex = 0;
+
+        //Calculating the index in card list at which we are hovering when dragging a card or a task
+        Vector2 mousePos = Input.Mouse.Position.ToVector2();
+        double dragPos = mousePos.X - cardStartOffset/2;
+        placeCardIndex = (int)Math.Floor(dragPos / (UICard.rectWidth + 16));
+        placeCardIndex = clamp(placeCardIndex, 0, uiCards.Count-1);
+
+        //Update cards
+        NoDraggingCardUpdate(dt);
+        DraggingCardUpdate(dt);
+
+        //Remove all cards in removal queue
+        uiCards.RemoveAll(c => c.QueuedForRemoval);
+
+        lbl_placeCardIndex.text = "placeCardIndex: " + placeCardIndex;
+        lbl_dt.text = "dt: " + dt.ToString();
+
+        ui.UpdateElements(Input.Keys, Input.Mouse);
+        Input.CycleEnd();
+        base.Update(gameTime);
+    }
+
+    private void NoDraggingCardUpdate(float dt)
+    {
+        Point cardPos = new Point(cardStartOffset);
+
+        UITaskBox? dragTask = uiCards.Find(c => c.DragTask != null)?.DragTask;
 
         //If we are not dragging - update all cards
         if(dragCard == null)
@@ -70,29 +98,49 @@ public class TasksProgram : Game
             foreach(UICard card in uiCards) 
             {
                 card.UpdatePosition(cardPos);
-                card.Update(dt);
 
-                if(card.IsBeingDragged)
+                //If we arent dragging any tasks update card
+                if(dragTask == null)
                 {
-                    dragCard = card;
-                    uiCards.Remove(card);
-                    cardPos = new Point(cardStartOffset);
-                    break;
+                    card.Update(dt);
+
+                    //Check if being dragged
+                    if(card.IsBeingDragged)
+                    {
+                        dragCard = card;
+                        uiCards.Remove(card);
+                        break;
+                    }
+
+                    //Check if we are dragging some task
+                    dragTask = card.DragTask;
+                }
+                
+                //If we are dragging a task, tell the card under which we are dragging our task, that its in their place 
+                if(dragTask != null)
+                {
+                    card.DragTask = null;
+
+                    if(card == uiCards.ElementAtOrDefault(placeCardIndex))
+                    {
+                        card.DragTask = dragTask;
+                        card.UpdateTaskBoxes(dt);
+                    }
                 }
 
                 cardPos.X += UICard.rectWidth + 16;
             }
         }
+    }
+
+    private void DraggingCardUpdate(float dt)
+    {
+        Point cardPos = new Point(cardStartOffset);
 
         //If we are dragging, update only drag card
         if(dragCard != null)
         {
             Vector2 mousePos = Input.Mouse.Position.ToVector2();
-
-            //Calculating the index in card list at which we are hovering when dragging a card
-            double dragPos = mousePos.X - cardStartOffset/2;
-            placeCardIndex = (int)Math.Floor(dragPos / (UICard.rectWidth + 16));
-            placeCardIndex = clamp(placeCardIndex, 0, uiCards.Count);
 
             //Update other cards position
             foreach(UICard card in uiCards)
@@ -122,15 +170,6 @@ public class TasksProgram : Game
                 dragCard = null;
             }
         }
-
-        uiCards.RemoveAll(c => c.QueuedForRemoval);
-
-        lbl_placeCardIndex.text = "placeCardIndex: " + placeCardIndex;
-        lbl_dt.text = "dt: " + dt.ToString();
-
-        ui.UpdateElements(Input.Keys, Input.Mouse);
-        Input.CycleEnd();
-        base.Update(gameTime);
     }
 
     protected override void Draw(GameTime gameTime)
@@ -181,7 +220,8 @@ public class TasksProgram : Game
         cardBinRect = bottomBarRect with { Width = cardBinWidth, X = bottomBarRect.Right - cardBinWidth };
 
         lbl_placeCardIndex = new(ui, new(0, 500), "placeCardIndex: #", Color.Red);
-        lbl_dt = new(ui, new(0, 500-30), "dt: #", Color.Red);
+        lbl_placeTaskIndex = new(ui, new(0, 500-30), "placeTaskIndex: #", Color.Red);
+        lbl_dt = new(ui, new(0, 500-60), "dt: #", Color.Red);
 
         //Randomized cards
         var addRandomizedCards = () => {

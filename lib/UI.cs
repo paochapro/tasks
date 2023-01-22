@@ -298,7 +298,7 @@ class Slider : UIElement
     }
 }
 
-class Label : UIElement
+public class Label : UIElement
 {
     public Color Color { get; set; }
 
