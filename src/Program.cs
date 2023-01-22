@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
 using Lib;
 
@@ -58,6 +59,10 @@ public class TasksProgram : Game
     private Label lbl_dt;
     public Label Label_placeTaskIndex => lbl_placeTaskIndex;
 
+    private List<Color> listOfColors;
+    private List<Color> currentListOfColors;
+    private bool debugMode;
+
     protected override void Update(GameTime gameTime)
     {
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -65,7 +70,7 @@ public class TasksProgram : Game
         placeCardIndex = 0;
 
         //If we arent dragging a card (in this case dragging a task instead) then maxIndex should count-1
-        //If we are dragging a card then we should add a additional slot
+        //If we are dragging a card then we should add an additional slot to maxIndex
         int maxIndex = uiCards.Count - 1;
         maxIndex += dragCard != null ? 1 : 0; 
 
@@ -75,6 +80,15 @@ public class TasksProgram : Game
         int cardCellSpace = UICard.rectWidth + 16;
         placeCardIndex = dragPos / cardCellSpace;
         placeCardIndex = clamp(placeCardIndex, 0, maxIndex);
+        
+        //Switch debug mode
+        if(Input.KeyPressed(Keys.OemTilde))
+            debugMode = !debugMode;
+
+        if(Input.IsKeyDown(Keys.LeftControl) && Input.KeyPressed(Keys.A))
+            AddCard();
+
+        ui.UpdateElements(Input.Keys, Input.Mouse);
 
         //Update cards
         NoDraggingCardUpdate(dt);
@@ -83,18 +97,30 @@ public class TasksProgram : Game
         //Remove all cards in removal queue
         uiCards.RemoveAll(c => c.QueuedForRemoval);
 
+        UpdateCardPositions();
+
+
+        //Debug info (red text)
         lbl_placeCardIndex.text = "placeCardIndex: " + placeCardIndex;
         lbl_dt.text = "dt: " + dt.ToString();
 
-        ui.UpdateElements(Input.Keys, Input.Mouse);
+        if(debugMode) {
+            lbl_placeCardIndex.Hidden = false;
+            lbl_placeTaskIndex.Hidden = false;
+            lbl_dt.Hidden = false;
+        }
+        else {
+            lbl_placeCardIndex.Hidden = true;
+            lbl_placeTaskIndex.Hidden = true;
+            lbl_dt.Hidden = true;
+        }
+
         Input.CycleEnd();
         base.Update(gameTime);
     }
 
     private void NoDraggingCardUpdate(float dt)
     {
-        Point cardPos = new Point(cardStartOffset);
-
         dragTask = uiCards.Find(c => c.DragTask != null)?.DragTask;
 
         //If we are not dragging - update all cards
@@ -102,8 +128,6 @@ public class TasksProgram : Game
         {
             foreach(UICard card in uiCards) 
             {
-                card.UpdatePosition(cardPos);
-
                 //If we arent dragging any tasks update card
                 if(dragTask == null)
                 {
@@ -132,8 +156,6 @@ public class TasksProgram : Game
                         card.UpdateTaskBoxes(dt);
                     }
                 }
-
-                cardPos.X += UICard.rectWidth + 16;
             }
         }
     }
@@ -146,18 +168,6 @@ public class TasksProgram : Game
         if(dragCard != null)
         {
             Vector2 mousePos = Input.Mouse.Position.ToVector2();
-
-            //Update other cards position
-            foreach(UICard card in uiCards)
-            {
-                //If we are hovering on this card move it to left side
-                if(card == uiCards.ElementAtOrDefault(placeCardIndex))
-                    cardPos.X += UICard.rectWidth + 16;
-
-                card.UpdatePosition(cardPos);
-
-                cardPos.X += UICard.rectWidth + 16;
-            }
 
             //Update drag card position
             Vector2 bannerSize = new Vector2(UICard.rectWidth, UICard.bannerHeight);
@@ -173,6 +183,43 @@ public class TasksProgram : Game
 
                 //Not dragging card anymore
                 dragCard = null;
+            }
+        }
+    }
+
+    private void AddCard()
+    {
+        Card deafultCard = new Card("New", currentListOfColors.FirstOrDefault());
+        currentListOfColors.RemoveAt(0);
+
+        if(currentListOfColors.Count == 0)
+            currentListOfColors = listOfColors.ToList();
+
+        UICard defaultUICard = new UICard(this, deafultCard);
+        uiCards.Add(defaultUICard);
+    }
+
+    private void UpdateCardPositions()
+    {
+        Point cardPos = new Point(cardStartOffset);
+
+        if(dragCard != null)
+        {
+            foreach(UICard card in uiCards)
+            {
+                if(card == uiCards.ElementAtOrDefault(placeCardIndex))
+                    cardPos.X += UICard.rectWidth + 16;
+
+                card.UpdatePosition(cardPos);
+                cardPos.X += UICard.rectWidth + 16;
+            }
+        }
+        else
+        {
+            foreach(UICard card in uiCards)
+            {
+                card.UpdatePosition(cardPos);
+                cardPos.X += UICard.rectWidth + 16;
             }
         }
     }
@@ -222,11 +269,36 @@ public class TasksProgram : Game
         textFont = assets.GetDefault<SpriteFont>();
         UICard.plusTexture = Content.Load<Texture2D>("plus");
         UICard.colorWheelTexture = Content.Load<Texture2D>("color_wheel");
-        //MyraEnvironment.Game = this;
 
+        listOfColors = new() {
+            Color.Red,
+            Color.Yellow,
+            Color.Green,
+            Color.Blue,
+            Color.Purple,
+            Color.Cyan,
+        };
+
+        currentListOfColors = listOfColors.ToList();
+
+        //UI colors
+        ui.BodyDefaultColor = new Color(40,40,40);
+        ui.BodyLockedColor = ui.BodyDefaultColor.DarkenBy(60);
+        ui.BodyHoverColor = ui.BodyDefaultColor.LightenBy(10);
+
+        ui.BorderDefaultColor = ui.BodyDefaultColor.DarkenBy(20);
+        ui.BorderLockedColor = ui.BorderDefaultColor.DarkenBy(60);
+        ui.BorderHoverColor = ui.BorderDefaultColor.LightenBy(10);
+
+        ui.TextDefaultColor = Color.White;
+        ui.TextHoverColor = Color.White;
+        ui.TextLockedColor = Color.White.DarkenBy(60);
+
+        //Bottom bar rects
         bottomBarRect = new Rectangle(0, Screen.Y - bottomBarHeight, Screen.X, bottomBarHeight);
         cardBinRect = bottomBarRect with { Width = cardBinWidth, X = bottomBarRect.Right - cardBinWidth };
 
+        //Debug labels
         lbl_placeCardIndex = new(ui, new(0, 500), "placeCardIndex: #", Color.Red);
         lbl_placeTaskIndex = new(ui, new(0, 500-30), "placeTaskIndex: #", Color.Red);
         lbl_dt = new(ui, new(0, 500-60), "dt: #", Color.Red);
@@ -255,7 +327,8 @@ public class TasksProgram : Game
             }
         };
 
-        Button button = new Button(ui, new Rectangle(500,700,200,50), addRandomizedCards, "Generate random");
+        Button generateRandom = new Button(ui, new Rectangle(500,700,200,50), addRandomizedCards, "Generate random");
+        Button addCard = new Button(ui, new Rectangle(200,700,200,50), AddCard, "Add card");
 
         addRandomizedCards();
         

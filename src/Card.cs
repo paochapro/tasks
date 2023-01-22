@@ -155,9 +155,17 @@ public class UICard
 
             return;
         }
-        
+
         //Check if user clicked on the banner to start dragging this card
-        isBeingDragged = bannerRect.Contains(Input.Mouse.Position) && Input.LBPressed();
+        //Or pressed middle button to delete it
+        if(bannerRect.Contains(Input.Mouse.Position))
+        {
+            isBeingDragged = Input.LBPressed();
+
+            if(Input.MBPressed())
+                queuedForRemoval = true;
+        }
+        
         UpdateTaskBoxes(dt);
     }
 
@@ -197,8 +205,6 @@ public class UICard
             placeTaskIndex = clamp(placeTaskIndex, 0, uiTaskBoxes.Count);
             program.Label_placeTaskIndex.text = "placeTaskIndex: " + placeTaskIndex;
 
-            UpdateTaskBoxesPosition();
-
             dragTask.Owner = this;
             dragTask.Update(dt);
 
@@ -211,6 +217,7 @@ public class UICard
 
         //Remove tasks that are in removal queue 
         uiTaskBoxes.RemoveAll(tb => tb.QueuedForRemoval);
+        UpdateTaskBoxesPosition();
     }
 
     public void Draw(SpriteBatch spriteBatch)
@@ -229,7 +236,7 @@ public class UICard
         Vector2 titlePos = rectPos + new Vector2(offset);
 
         //Banner title color
-        int darkTitleValue = 120;//120;
+        int darkTitleValue = 140;//120;
         Color bannerTitleColor = card.BannerColor.DarkenBy(darkTitleValue);
 
         spriteBatch.DrawString(program.TextFont, card.Title, titlePos, bannerTitleColor);

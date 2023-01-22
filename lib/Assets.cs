@@ -8,7 +8,6 @@ namespace Lib;
 class Assets
 {
     private ContentManager content;
-    private Texture2D errorTexture;
 
     private Dictionary<Type, object> defaultAssets;
 
@@ -41,7 +40,7 @@ class Assets
         {
             print("\""+asset+"\" wasn't found in MonoGame:Load");
 
-            T assetObj = default(T);
+            T? assetObj = default(T);
             Type assetType = typeof(T);
 
             if(defaultAssets.ContainsKey(assetType))
@@ -51,23 +50,17 @@ class Assets
         }
         return content.Load<T>(asset);
     }
-    public Texture2D LoadTexture(string asset)
-    {
-        ContentAvaliable();
 
-        if (!AssetExists(asset))
-        {
-            print("\""+asset+"\" texture wasn't found in MonoGame:Load");
-            return errorTexture;
-        }
-
-        return content.Load<Texture2D>(asset);
-    }
+    public Texture2D? LoadTexture(string asset) => Load<Texture2D>(asset);
+    
     public T GetDefault<T>() where T: class 
     {
         Type assetType = typeof(T);
         if(defaultAssets.ContainsKey(assetType))
-            return defaultAssets[assetType] as T;
+        {
+            T defaultAsset = defaultAssets[assetType] as T;
+            return defaultAsset;
+        }
         else
             throw new Exception("No default asset for " + assetType.Name + " asset type (Asset:GetDefault)");
     } 
