@@ -58,8 +58,6 @@ public class TasksProgram : Game
     private Label lbl_dt;
     public Label Label_placeTaskIndex => lbl_placeTaskIndex;
 
-    private List<UICard> cardsToRemove;
-
     protected override void Update(GameTime gameTime)
     {
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -220,8 +218,10 @@ public class TasksProgram : Game
     {
         spriteBatch = new(GraphicsDevice);
         assets = new Assets(Content);
-        textFont = assets.GetDefault<SpriteFont>();
         ui = new UI(this);
+        textFont = assets.GetDefault<SpriteFont>();
+        UICard.plusTexture = Content.Load<Texture2D>("plus");
+        UICard.colorWheelTexture = Content.Load<Texture2D>("color_wheel");
         //MyraEnvironment.Game = this;
 
         bottomBarRect = new Rectangle(0, Screen.Y - bottomBarHeight, Screen.X, bottomBarHeight);
@@ -274,7 +274,7 @@ public class TasksProgram : Game
     public TasksProgram()
     {
         graphics = new GraphicsDeviceManager(this);
-        Content.RootDirectory = "content";
+        Content.RootDirectory = "Content";
     }
 }
 

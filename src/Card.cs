@@ -31,6 +31,8 @@ public class UICard
     public const int rectWidth = 256;
     public const int bannerHeight = 32; //24;
     public const int cardButtonsWidth = bannerHeight;
+    public static Texture2D plusTexture;
+    public static Texture2D colorWheelTexture;
 
     //Properties
     public Card Card => card;
@@ -227,19 +229,22 @@ public class UICard
         Vector2 titlePos = rectPos + new Vector2(offset);
 
         //Banner title color
-        int darkValue = 120;
-        Color bannerTitleColor = card.BannerColor.DarkenBy(darkValue);
+        int darkTitleValue = 120;//120;
+        Color bannerTitleColor = card.BannerColor.DarkenBy(darkTitleValue);
 
         spriteBatch.DrawString(program.TextFont, card.Title, titlePos, bannerTitleColor);
 
         //Add task and color wheel buttons
+        int darkButtonsValue = 60;
+        Color buttonsColor = card.BannerColor.DarkenBy(darkButtonsValue);
+
         Rectangle taskButtonRect = banner with { Width = cardButtonsWidth };
         taskButtonRect.X = banner.Right - taskButtonRect.Width;
-        spriteBatch.FillRectangle(taskButtonRect, addTaskButtonClr);
+        spriteBatch.Draw(plusTexture, taskButtonRect, buttonsColor);
 
         Rectangle colorWheelRect = taskButtonRect;
         colorWheelRect.X = taskButtonRect.Left - colorWheelRect.Width;
-        spriteBatch.FillRectangle(colorWheelRect, colorWheelButtonClr);
+        spriteBatch.Draw(colorWheelTexture, colorWheelRect, buttonsColor);
 
         //Task boxes
         uiTaskBoxes.ForEach(tb => tb.Draw(spriteBatch));
