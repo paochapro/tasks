@@ -41,6 +41,7 @@ public class TasksProgram : Game
     //Main fields
     private List<UICard> uiCards = new();
     private UICard? dragCard;
+    private UITaskBox? dragTask;
     private int placeCardIndex;
 
     //Other stuff
@@ -65,11 +66,17 @@ public class TasksProgram : Game
 
         placeCardIndex = 0;
 
+        //If we arent dragging a card (in this case dragging a task instead) then maxIndex should count-1
+        //If we are dragging a card then we should add a additional slot
+        int maxIndex = uiCards.Count - 1;
+        maxIndex += dragCard != null ? 1 : 0; 
+
         //Calculating the index in card list at which we are hovering when dragging a card or a task
-        Vector2 mousePos = Input.Mouse.Position.ToVector2();
-        double dragPos = mousePos.X - cardStartOffset/2;
-        placeCardIndex = (int)Math.Floor(dragPos / (UICard.rectWidth + 16));
-        placeCardIndex = clamp(placeCardIndex, 0, uiCards.Count-1);
+        float mouseX = Input.Mouse.Position.ToVector2().X;
+        int dragPos = (int)mouseX - cardStartOffset/2;
+        int cardCellSpace = UICard.rectWidth + 16;
+        placeCardIndex = dragPos / cardCellSpace;
+        placeCardIndex = clamp(placeCardIndex, 0, maxIndex);
 
         //Update cards
         NoDraggingCardUpdate(dt);
@@ -90,7 +97,7 @@ public class TasksProgram : Game
     {
         Point cardPos = new Point(cardStartOffset);
 
-        UITaskBox? dragTask = uiCards.Find(c => c.DragTask != null)?.DragTask;
+        dragTask = uiCards.Find(c => c.DragTask != null)?.DragTask;
 
         //If we are not dragging - update all cards
         if(dragCard == null)
@@ -204,6 +211,7 @@ public class TasksProgram : Game
             ui.DrawElements(spriteBatch);
 
             dragCard?.Draw(spriteBatch);
+            dragTask?.Draw(spriteBatch);
         }
         spriteBatch.End();
     }

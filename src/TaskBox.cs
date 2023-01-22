@@ -61,9 +61,8 @@ public class UITaskBox
             Vector2 dragTaskPos = mousePos - taskSize / 2;
             UpdatePosition(dragTaskPos.ToPoint());
 
-            print("Task is being dragged");
-
             isBeingDragged = !Input.RBReleased();
+            hover = false;
 
             return;
         }

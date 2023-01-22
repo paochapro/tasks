@@ -79,15 +79,16 @@ public class UICard
         //Update our location
         rectangle.Location = position;
         UpdateTaskBoxesPosition();
+        UpdateRectHeight();
     }
 
     private void UpdateTaskBoxesPosition()
     {
         //Update taskboxes location
-        int total = UICard.bannerHeight + UITaskBox.taskMargin;
+        int totalY = UICard.bannerHeight + UITaskBox.taskMargin;
         Point taskboxPos = rectangle.Location;
         taskboxPos.X += UITaskBox.taskMargin;
-        taskboxPos.Y += total;
+        taskboxPos.Y += totalY;
 
         foreach(UITaskBox taskbox in uiTaskBoxes) 
         {
@@ -95,10 +96,10 @@ public class UICard
             bool userWantsToInsertHere = taskbox == uiTaskBoxes.ElementAtOrDefault(placeTaskIndex);
 
             if(draggedTaskInThisCard && userWantsToInsertHere)
-                taskboxPos.Y += total;
+                taskboxPos.Y += totalY;
 
             taskbox.UpdatePosition(taskboxPos);
-            taskboxPos.Y += total;
+            taskboxPos.Y += totalY;
         }
     }
 
@@ -160,8 +161,6 @@ public class UICard
 
     public void UpdateTaskBoxes(float dt)
     {
-        placeTaskIndex = 0;
-
         //Update taskboxes if we arent dragging any task
         if(dragTask == null)
         {
@@ -183,18 +182,20 @@ public class UICard
         //If a dragged task is in our place, update our tasks positions
         if(dragTask != null)
         {
-            UpdateTaskBoxesPosition();
+            //Calculating the index in task list at which we are hovering when dragging a task
             Rectangle body = rectangle with { 
                 Y = rectangle.Y + bannerHeight, 
                 Height = rectangle.Height - bannerHeight 
             };
 
             float mouseY = Input.Mouse.Position.ToVector2().Y;
-            float dragPos = mouseY - body.Y;
-            int taskCellSpace = UITaskBox.taskHeight + UITaskBox.taskMargin;
-            placeTaskIndex = (int)Math.Floor(dragPos / taskCellSpace);
+            int dragPos = (int)mouseY - body.Y;
+            int taskCellSpace = UITaskBox.taskHeight + UITaskBox.taskMargin*2;
+            placeTaskIndex = dragPos / taskCellSpace;
             placeTaskIndex = clamp(placeTaskIndex, 0, uiTaskBoxes.Count);
             program.Label_placeTaskIndex.text = "placeTaskIndex: " + placeTaskIndex;
+
+            UpdateTaskBoxesPosition();
 
             dragTask?.Update(dt);
 
@@ -206,11 +207,7 @@ public class UICard
         }
 
         //Remove tasks that are in removal queue 
-        //And update our rect height if we removed some tasks
-        int removedTaskBoxes = uiTaskBoxes.RemoveAll(tb => tb.QueuedForRemoval);
-
-        if(removedTaskBoxes > 0)
-            UpdateRectHeight();
+        uiTaskBoxes.RemoveAll(tb => tb.QueuedForRemoval);
     }
 
     public void Draw(SpriteBatch spriteBatch)
@@ -255,7 +252,9 @@ public class UICard
             Point placeTaskBoxPos = body.Location + new Point(UITaskBox.taskMargin, y);
             Point placeTaskSize = new(UITaskBox.taskWidth, UITaskBox.taskHeight);
             Rectangle placeTaskBox = new(placeTaskBoxPos, placeTaskSize);
+
             spriteBatch.DrawRectangle(placeTaskBox, Color.White, 2);
+            //spriteBatch.DrawRectangle(body, new Color(255,0,0,255), 1);
         }
     }
 
@@ -263,8 +262,9 @@ public class UICard
 
     private void UpdateRectHeight()
     {
-        //Calculating the rect height based on how many tasks given card has
-        int rectHeight = bannerHeight + uiTaskBoxes.Count * (UITaskBox.taskHeight + UITaskBox.tasksOffset) + UITaskBox.taskMargin * 2;
+        //Calculating the rect height
+        int dragging = dragTask != null ? 1 : 0;
+        int rectHeight = bannerHeight + (uiTaskBoxes.Count + dragging) * (UITaskBox.taskHeight + UITaskBox.tasksOffset) + UITaskBox.taskMargin * 2;
         rectHeight = Math.Max(rectHeight, minRectHeight);
         rectangle.Height = rectHeight;
     }
