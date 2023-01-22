@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
 
 using Lib;
@@ -35,6 +36,7 @@ public class UICard
     public Card Card => card;
     public Rectangle Rectangle => rectangle;
     public bool IsBeingDragged => isBeingDragged;
+    public bool QueuedForRemoval => queuedForRemoval;
 
     //Fields
     private Rectangle rectangle;
@@ -42,8 +44,8 @@ public class UICard
     private Card card;
     private TasksProgram program;
     private bool isBeingDragged;
+    private bool queuedForRemoval;
 
-    private UITaskBox taskBoxToRemove;
     private Color colorWheelButtonClr;
     private Color addTaskButtonClr;
     
@@ -90,7 +92,6 @@ public class UICard
 
     public void Update(float dt)
     {
-        taskBoxToRemove = null;
         addTaskButtonClr = Color.White;
         colorWheelButtonClr = Color.White;
 
@@ -99,6 +100,10 @@ public class UICard
         if(isBeingDragged)
         {
             isBeingDragged = !Input.LBReleased();
+
+            if(program.CardBinRect.Contains(Input.Mouse.Position) && !isBeingDragged)
+                queuedForRemoval = true;
+
             return;
         }
 
@@ -109,10 +114,12 @@ public class UICard
             foreach(UITaskBox taskbox in uiTaskBoxes)
                 taskbox.Update(dt);
 
-            //Remove the taskbox that user deleted during update
-            if(taskBoxToRemove != null)
-                RemoveTaskInstantly(taskBoxToRemove);
+            int removedTaskBoxes = uiTaskBoxes.RemoveAll(tb => tb.QueuedForRemoval);
+
+            if(removedTaskBoxes > 0)
+                UpdateRectHeight();
         };
+
 
         Rectangle bannerRect = rectangle with { Height = bannerHeight };
 
@@ -166,12 +173,10 @@ public class UICard
         float offset = (banner.Height / 2 - measure.Y / 2);
         Vector2 titlePos = rectPos + new Vector2(offset);
 
-        int darkValue = 60; 
+        //Banner title color
+        int darkValue = 120;
+        Color bannerTitleColor = card.BannerColor.DarkenBy(darkValue);
 
-        Color bannerTitleColor = card.BannerColor;
-        bannerTitleColor.R = (byte)clamp(bannerTitleColor.R - darkValue, 0, 255);
-        bannerTitleColor.G = (byte)clamp(bannerTitleColor.G - darkValue, 0, 255);
-        bannerTitleColor.B = (byte)clamp(bannerTitleColor.B - darkValue, 0, 255);
         spriteBatch.DrawString(program.TextFont, card.Title, titlePos, bannerTitleColor);
 
         //Add task and color wheel buttons
@@ -187,9 +192,7 @@ public class UICard
         uiTaskBoxes.ForEach(tb => tb.Draw(spriteBatch));
     }
 
-    public void RemoveTask(UITaskBox taskBox) => taskBoxToRemove = taskBox;
     private void AddTask(UITaskBox taskBox) { uiTaskBoxes.Add(taskBox); UpdateRectHeight(); }
-    private void RemoveTaskInstantly(UITaskBox taskBox) { uiTaskBoxes.Remove(taskBox); UpdateRectHeight(); }
 
     private void UpdateRectHeight()
     {

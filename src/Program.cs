@@ -43,8 +43,19 @@ public class TasksProgram : Game
     private UICard? dragCard;
     private int placeCardIndex;
 
-    //Card placement
+    //Other stuff
     private const int cardStartOffset = 16;
+    private const int bottomBarHeight = 200;
+    private const int cardBinWidth = 300;
+
+    private Rectangle cardBinRect;
+    private Rectangle bottomBarRect;
+    public Rectangle CardBinRect => cardBinRect;
+
+    private Label lbl_placeCardIndex;
+    private Label lbl_dt;
+
+    private List<UICard> cardsToRemove;
 
     protected override void Update(GameTime gameTime)
     {
@@ -112,6 +123,8 @@ public class TasksProgram : Game
             }
         }
 
+        uiCards.RemoveAll(c => c.QueuedForRemoval);
+
         lbl_placeCardIndex.text = "placeCardIndex: " + placeCardIndex;
         lbl_dt.text = "dt: " + dt.ToString();
 
@@ -126,6 +139,10 @@ public class TasksProgram : Game
         
         spriteBatch.Begin();
         {
+            //Drawing bottom bar
+            spriteBatch.FillRectangle(bottomBarRect, clearColor.DarkenBy(20));
+            spriteBatch.FillRectangle(cardBinRect, clearColor.DarkenBy(40));
+
             //Drawing place rect
             if(dragCard != null)
             {
@@ -152,8 +169,6 @@ public class TasksProgram : Game
         spriteBatch.End();
     }
 
-    Label lbl_placeCardIndex;
-    Label lbl_dt;
     protected override void LoadContent()
     {
         spriteBatch = new(GraphicsDevice);
@@ -162,8 +177,11 @@ public class TasksProgram : Game
         ui = new UI(this);
         //MyraEnvironment.Game = this;
 
-        lbl_placeCardIndex = new(ui, Point.Zero, "placeCardIndex: #", Color.Red);
-        lbl_dt = new(ui, new Point(0, 30), "dt: #", Color.Red);
+        bottomBarRect = new Rectangle(0, Screen.Y - bottomBarHeight, Screen.X, bottomBarHeight);
+        cardBinRect = bottomBarRect with { Width = cardBinWidth, X = bottomBarRect.Right - cardBinWidth };
+
+        lbl_placeCardIndex = new(ui, new(0, 500), "placeCardIndex: #", Color.Red);
+        lbl_dt = new(ui, new(0, 500-30), "dt: #", Color.Red);
 
         //Randomized cards
         var addRandomizedCards = () => {

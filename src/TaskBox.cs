@@ -23,12 +23,15 @@ public class UITaskBox
     //public bool IsChecked => isChecked;
     //public bool IsHovered => hover;
     //public Rectangle Rectangle => rectangle;
+
+    public bool QueuedForRemoval => queuedForRemoval;
     
     private UICard owner;
     private Rectangle rectangle;
-    private bool isChecked = false;
-    private bool hover = false;
-    private string description = "";
+    private bool isChecked;
+    private bool hover;
+    private bool queuedForRemoval;
+    private string description;
     private SpriteFont textFont;
 
     //Description
@@ -53,7 +56,7 @@ public class UITaskBox
         if(!hover) return;
 
         if(Input.MBPressed())
-            owner.RemoveTask(this);
+            queuedForRemoval = true;
 
         if(Input.LBPressed())
             isChecked = !isChecked;

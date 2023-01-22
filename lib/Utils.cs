@@ -154,3 +154,39 @@ class ReadOnly2DArray<T>
         this.array = array;
     }
 }
+
+static class ColorExtensions
+{
+    public static Color LightenBy(this Color color, int value)
+    {
+        return color.AddColor(new Color(value, value, value));
+    }
+
+    public static Color DarkenBy(this Color color, int value)
+    {
+        return color.SubtractColor(new Color(value, value, value));
+    }
+
+    public static Color AddColor(this Color color, Color other)
+    {
+        Vector3 vec1 = new(color.R, color.G, color.B);
+        Vector3 vec2 = new(other.R, other.G, other.B);
+        return ColorAddition(vec1, vec2);
+    }
+
+    public static Color SubtractColor(this Color color, Color other)
+    {
+        Vector3 vec1 = new(color.R, color.G, color.B);
+        Vector3 vec2 = new(other.R, other.G, other.B);
+        return ColorAddition(vec1, -vec2);
+    }
+
+    private static Color ColorAddition(Vector3 clr1, Vector3 clr2)
+    {
+        Color resultClr = Color.White;
+        resultClr.R = (byte)Utils.clamp(clr1.X + clr2.X, 0, 255);
+        resultClr.G = (byte)Utils.clamp(clr1.Y + clr2.Y, 0, 255);
+        resultClr.B = (byte)Utils.clamp(clr1.Z + clr2.Z, 0, 255);
+        return resultClr;
+    }
+}
