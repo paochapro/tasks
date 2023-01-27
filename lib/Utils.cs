@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 
 namespace Lib;
@@ -90,18 +91,6 @@ internal static class Utils
     public static float inverseLerp(float a, float b, float v) => (v-a) / (b-a);
 }
 
-static class Directions
-{
-    public static Vector2 Up            => -Vector2.UnitY;
-    public static Vector2 Down          => Vector2.UnitY;
-    public static Vector2 Left          => -Vector2.UnitX;
-    public static Vector2 Right         => Vector2.UnitX;
-    public static Vector2 UpLeft        => Up + Left;
-    public static Vector2 UpRight       => Up + Right;
-    public static Vector2 DownLeft      => Down + Left;
-    public static Vector2 DownRight     => Down + Right;
-}
-
 class ReadOnly2DArray<T>
 {
     private T[,] array;
@@ -155,6 +144,18 @@ class ReadOnly2DArray<T>
     }
 }
 
+static class Directions
+{
+    public static Vector2 Up            => -Vector2.UnitY;
+    public static Vector2 Down          => Vector2.UnitY;
+    public static Vector2 Left          => -Vector2.UnitX;
+    public static Vector2 Right         => Vector2.UnitX;
+    public static Vector2 UpLeft        => Up + Left;
+    public static Vector2 UpRight       => Up + Right;
+    public static Vector2 DownLeft      => Down + Left;
+    public static Vector2 DownRight     => Down + Right;
+}
+
 static class ColorExtensions
 {
     public static Color LightenBy(this Color color, int value)
@@ -188,5 +189,49 @@ static class ColorExtensions
         resultClr.G = (byte)Utils.clamp(clr1.Y + clr2.Y, 0, 255);
         resultClr.B = (byte)Utils.clamp(clr1.Z + clr2.Z, 0, 255);
         return resultClr;
+    }
+}
+
+static class TextureExtensions
+{
+    private static Texture2D ColorAddition(this Texture2D texture, Vector3 color)
+    {
+        int w = texture.Width;
+        int h = texture.Height;
+        Texture2D result = new Texture2D(texture.GraphicsDevice, w, h);
+
+        Color[] colorData = new Color[w * h];
+        texture.GetData(colorData);
+
+        for(int i = 0; i < colorData.Length; ++i)
+        {
+            colorData[i].R = (byte)Utils.clamp(colorData[i].R + color.X, 0, 255); 
+            colorData[i].G = (byte)Utils.clamp(colorData[i].G + color.Y, 0, 255);
+            colorData[i].B = (byte)Utils.clamp(colorData[i].B + color.Z, 0, 255);
+        }
+
+        result.SetData(colorData);
+
+        return result;
+    }
+
+    public static Texture2D AddColor(this Texture2D texture, Color color)
+    {
+        return texture.ColorAddition(color.ToVector3());
+    }
+
+    public static Texture2D SubtractColor(this Texture2D texture, Color color)
+    {
+        return texture.ColorAddition(-color.ToVector3());
+    }
+
+    public static Texture2D LightenBy(this Texture2D texture, byte value)
+    {
+        return texture.AddColor(new Color(value,value,value));
+    }
+
+    public static Texture2D DarkenBy(this Texture2D texture, byte value)
+    {
+        return texture.SubtractColor(new Color(value,value,value));
     }
 }

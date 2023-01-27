@@ -27,36 +27,46 @@ public class UICard
 {
     //Static style vars
     public static readonly Color bodyColor = new(90, 90, 90);
+    public static Texture2D plusTexture;
+    public static Texture2D colorWheelTexture;
     public const int minRectHeight = 64;
     public const int rectWidth = 256;
     public const int bannerHeight = 32; //24;
-    public const int cardButtonsWidth = bannerHeight;
-    public static Texture2D plusTexture;
-    public static Texture2D colorWheelTexture;
+    public const int cardButtonsWidth = 32;
 
     //Properties
     public Card Card => card;
     public Rectangle Rectangle => rectangle;
     public bool IsBeingDragged => isBeingDragged;
-    public bool QueuedForRemoval => queuedForRemoval;
+    public bool IsBeingRenamed => isBeingRenamed;
+    public bool IsQueuedForRemoval => isQueuedForRemoval;
+    public UITaskBox? DragTask { get => dragTask; set => dragTask = value; }
 
     //Fields
-    private Rectangle rectangle;
+    private Color bannerColor;
+    private string cardTitle;
     private List<UITaskBox> uiTaskBoxes;
+
+    private Rectangle rectangle;
     private Card card;
     private TasksProgram program;
-    private bool isBeingDragged;
-    private bool queuedForRemoval;
-
-    //Dragging task
     private UITaskBox? dragTask;
     private int placeTaskIndex;
-    public UITaskBox? DragTask { get => dragTask; set => dragTask = value; }
-    public int PlaceCardIndex => placeTaskIndex; 
+
+    private bool isBeingDragged;
+    private bool isBeingRenamed;
+    private bool isQueuedForRemoval;
 
     private Color colorWheelButtonClr;
     private Color addTaskButtonClr;
-    
+    private Color bannerTitleColor;
+
+    private readonly Color buttonsDefaultColor;
+    private readonly Color buttonsHoverColor;
+    private readonly Color bannerTitleDefaultColor;
+    private readonly Color bannerTitleHoverColor;
+
+
     public UICard(TasksProgram program, Card card)
     {
         //Init stuff
@@ -66,49 +76,36 @@ public class UICard
         this.card = card;
         this.program = program;
 
-        colorWheelButtonClr = Color.White;
-        addTaskButtonClr = Color.White;
+        //Copying data from card
+        this.bannerColor = card.BannerColor;
+        this.cardTitle = card.Title;
 
-        //Adding ui taskboxes
         foreach (KeyValuePair<string, bool> task in card.Tasks)
         {
             AddTask(new UITaskBox(program, task.Key, task.Value, this));
         }
-    }
 
-    public void UpdatePosition(Point position)
-    {
-        //Update our location
-        rectangle.Location = position;
-        UpdateTaskBoxesPosition();
-        UpdateRectHeight();
-    }
+        //Colors and stuff
+        const int buttonsDarkenValue = 60;
+        const int buttonsHoverLightenValue = 30;
+        const int bannerTitleDarkenValue = 140;
+        const int bannerTitleLightenValue = 70;
 
-    private void UpdateTaskBoxesPosition()
-    {
-        //Update taskboxes location
-        int totalY = UICard.bannerHeight + UITaskBox.taskMargin;
-        Point taskboxPos = rectangle.Location;
-        taskboxPos.X += UITaskBox.taskMargin;
-        taskboxPos.Y += totalY;
+        buttonsDefaultColor         = bannerColor.DarkenBy(buttonsDarkenValue);
+        buttonsHoverColor           = buttonsDefaultColor.LightenBy(buttonsHoverLightenValue);
+        bannerTitleDefaultColor     = bannerColor.DarkenBy(bannerTitleDarkenValue);
+        bannerTitleHoverColor       = bannerTitleDefaultColor.LightenBy(bannerTitleLightenValue);
 
-        foreach(UITaskBox taskbox in uiTaskBoxes) 
-        {
-            bool draggedTaskInThisCard = dragTask != null;
-            bool userWantsToInsertHere = taskbox == uiTaskBoxes.ElementAtOrDefault(placeTaskIndex);
-
-            if(draggedTaskInThisCard && userWantsToInsertHere)
-                taskboxPos.Y += totalY;
-
-            taskbox.UpdatePosition(taskboxPos);
-            taskboxPos.Y += totalY;
-        }
+        colorWheelButtonClr = buttonsDefaultColor;
+        addTaskButtonClr = buttonsDefaultColor;
+        bannerTitleColor = bannerTitleDefaultColor;
     }
 
     public void Update(float dt)
     {
-        addTaskButtonClr = Color.White;
-        colorWheelButtonClr = Color.White;
+        colorWheelButtonClr = buttonsDefaultColor;
+        addTaskButtonClr = buttonsDefaultColor;
+        bannerTitleColor = bannerTitleDefaultColor;
 
         //If we are being dragged:
         //1. Check if user released mouse1 to stop dragging this card
@@ -116,23 +113,39 @@ public class UICard
         //And do not update anything else
         if(isBeingDragged)
         {
-            isBeingDragged = !Input.LBReleased();
+            if(Input.LBReleased())
+                isBeingDragged = false;
 
             if(program.CardBinRect.Contains(Input.Mouse.Position) && !isBeingDragged)
-                queuedForRemoval = true;
+                isQueuedForRemoval = true;
 
             return;
         }
 
+        if(isBeingRenamed)
+        {
+            if(Input.IsKeyDown(Keys.Escape))
+                isBeingRenamed = false;
+                
+            return;
+        }
+
+        UpdateBannerActions(dt);
+        UpdateTaskBoxes(dt);
+    }
+
+    private void UpdateBannerActions(float dt)
+    {
         Rectangle bannerRect = rectangle with { Height = bannerHeight };
+        Point mousePos = Input.Mouse.Position;
 
         //Check if user clicked on + sign
         Rectangle taskButtonRect = bannerRect with { Width = cardButtonsWidth };
         taskButtonRect.X = bannerRect.Right - taskButtonRect.Width;
 
-        if(taskButtonRect.Contains(Input.Mouse.Position))
+        if(taskButtonRect.Contains(mousePos))
         {
-            addTaskButtonClr = Color.Black;
+            addTaskButtonClr = buttonsHoverColor;
 
             if(Input.LBPressed())
                 AddTask(new UITaskBox(program, "empty", false, this));
@@ -145,10 +158,10 @@ public class UICard
         Rectangle colorWheelRect = taskButtonRect;
         colorWheelRect.X = taskButtonRect.Left - colorWheelRect.Width;
 
-        if(colorWheelRect.Contains(Input.Mouse.Position))
+        if(colorWheelRect.Contains(mousePos))
         {
             //Popup the color changing window
-            colorWheelButtonClr = Color.Black;
+            colorWheelButtonClr = buttonsHoverColor;
 
             if(Input.LBPressed())
                 print("Color wheel button");
@@ -156,17 +169,20 @@ public class UICard
             return;
         }
 
-        //Check if user clicked on the banner to start dragging this card
-        //Or pressed middle button to delete it
-        if(bannerRect.Contains(Input.Mouse.Position))
+        //Check if user: 
+        //1. Wants to start dragging this card
+        //2. Wants to delete it
+        //3. Wants to rename it
+        if(bannerRect.Contains(mousePos))
         {
             isBeingDragged = Input.LBPressed();
 
             if(Input.MBPressed())
-                queuedForRemoval = true;
+                isQueuedForRemoval = true;
+
+            if(Input.KeyPressed(Keys.F2))
+                isBeingRenamed = true;
         }
-        
-        UpdateTaskBoxes(dt);
     }
 
     public void UpdateTaskBoxes(float dt)
@@ -220,6 +236,44 @@ public class UICard
         UpdateTaskBoxesPosition();
     }
 
+    public void UpdatePosition(Point position)
+    {
+        //Update our location
+        rectangle.Location = position;
+        UpdateTaskBoxesPosition();
+        UpdateRectHeight();
+    }
+
+    private void UpdateTaskBoxesPosition()
+    {
+        //Update taskboxes location
+        int totalY = UICard.bannerHeight + UITaskBox.taskMargin;
+        Point taskboxPos = rectangle.Location;
+        taskboxPos.X += UITaskBox.taskMargin;
+        taskboxPos.Y += totalY;
+
+        foreach(UITaskBox taskbox in uiTaskBoxes) 
+        {
+            bool draggedTaskInThisCard = dragTask != null;
+            bool userWantsToInsertHere = taskbox == uiTaskBoxes.ElementAtOrDefault(placeTaskIndex);
+
+            if(draggedTaskInThisCard && userWantsToInsertHere)
+                taskboxPos.Y += totalY;
+
+            taskbox.UpdatePosition(taskboxPos);
+            taskboxPos.Y += totalY;
+        }
+    }
+
+    private void UpdateRectHeight()
+    {
+        //Calculating the rect height
+        int dragging = dragTask != null ? 1 : 0;
+        int rectHeight = bannerHeight + (uiTaskBoxes.Count + dragging) * (UITaskBox.taskHeight + UITaskBox.tasksOffset) + UITaskBox.taskMargin * 2;
+        rectHeight = Math.Max(rectHeight, minRectHeight);
+        rectangle.Height = rectHeight;
+    }
+
     public void Draw(SpriteBatch spriteBatch)
     {
         //Main body
@@ -227,31 +281,39 @@ public class UICard
         
         //Banner
         Rectangle banner = rectangle with { Height = bannerHeight };
-        spriteBatch.FillRectangle(banner, card.BannerColor);
+        spriteBatch.FillRectangle(banner, bannerColor);
 
         //Banner title
-        Vector2 measure = program.TextFont.MeasureString(card.Title);
+        Vector2 measure = program.TextFont.MeasureString(cardTitle);
         Vector2 rectPos = banner.Location.ToVector2();
         float offset = (banner.Height / 2 - measure.Y / 2);
         Vector2 titlePos = rectPos + new Vector2(offset);
 
-        //Banner title color
-        int darkTitleValue = 140;//120;
-        Color bannerTitleColor = card.BannerColor.DarkenBy(darkTitleValue);
-
-        spriteBatch.DrawString(program.TextFont, card.Title, titlePos, bannerTitleColor);
+        //Draw bannet title
+        spriteBatch.DrawString(program.TextFont, cardTitle, titlePos, bannerTitleColor);
 
         //Add task and color wheel buttons
-        int darkButtonsValue = 60;
-        Color buttonsColor = card.BannerColor.DarkenBy(darkButtonsValue);
+        Color hoverRectColorAddTask = Color.Transparent;
+        Color hoverRectColorColorWheel = Color.Transparent;
+        const int rectOnHoverLightenValue = 10;
+
+        if(addTaskButtonClr == buttonsHoverColor)
+            hoverRectColorAddTask = bannerColor.LightenBy(rectOnHoverLightenValue);
+
+        if(colorWheelButtonClr == buttonsHoverColor)
+            hoverRectColorColorWheel = bannerColor.LightenBy(rectOnHoverLightenValue);
 
         Rectangle taskButtonRect = banner with { Width = cardButtonsWidth };
         taskButtonRect.X = banner.Right - taskButtonRect.Width;
-        spriteBatch.Draw(plusTexture, taskButtonRect, buttonsColor);
+
+        spriteBatch.FillRectangle(taskButtonRect, hoverRectColorAddTask);
+        spriteBatch.Draw(plusTexture, taskButtonRect, addTaskButtonClr);
 
         Rectangle colorWheelRect = taskButtonRect;
         colorWheelRect.X = taskButtonRect.Left - colorWheelRect.Width;
-        spriteBatch.Draw(colorWheelTexture, colorWheelRect, buttonsColor);
+
+        spriteBatch.FillRectangle(colorWheelRect, hoverRectColorColorWheel);
+        spriteBatch.Draw(colorWheelTexture, colorWheelRect, colorWheelButtonClr);
 
         //Task boxes
         uiTaskBoxes.ForEach(tb => tb.Draw(spriteBatch));
@@ -273,12 +335,18 @@ public class UICard
 
     private void AddTask(UITaskBox taskBox) { uiTaskBoxes.Add(taskBox); UpdateRectHeight(); }
 
-    private void UpdateRectHeight()
+    private void TitleReadTextInput(object? sender, TextInputEventArgs args)
     {
-        //Calculating the rect height
-        int dragging = dragTask != null ? 1 : 0;
-        int rectHeight = bannerHeight + (uiTaskBoxes.Count + dragging) * (UITaskBox.taskHeight + UITaskBox.tasksOffset) + UITaskBox.taskMargin * 2;
-        rectHeight = Math.Max(rectHeight, minRectHeight);
-        rectangle.Height = rectHeight;
+        const string avaliableCharaters = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890-=!@#$%^&*()_+[]{};':|\\\",./<>?`~ ";
+        char character = args.Character;
+
+        if(character == '\b')
+        {
+            if(cardTitle.Length > 0)
+                cardTitle.Remove(cardTitle.Length-1, 1);
+        }
+
+        if(avaliableCharaters.Contains(character))
+            cardTitle += character;
     }
 }

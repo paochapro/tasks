@@ -43,6 +43,7 @@ public class TasksProgram : Game
     private List<UICard> uiCards = new();
     private UICard? dragCard;
     private UITaskBox? dragTask;
+    private UICard? renamingTitleCard;
     private int placeCardIndex;
 
     //Other stuff
@@ -68,11 +69,11 @@ public class TasksProgram : Game
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
         placeCardIndex = 0;
-
+        
         //If we arent dragging a card (in this case dragging a task instead) then maxIndex should count-1
         //If we are dragging a card then we should add an additional slot to maxIndex
         int maxIndex = uiCards.Count - 1;
-        maxIndex += dragCard != null ? 1 : 0; 
+        maxIndex += dragCard != null ? 1 : 0;
 
         //Calculating the index in card list at which we are hovering when dragging a card or a task
         float mouseX = Input.Mouse.Position.ToVector2().X;
@@ -85,20 +86,29 @@ public class TasksProgram : Game
         if(Input.KeyPressed(Keys.OemTilde))
             debugMode = !debugMode;
 
-        if(Input.IsKeyDown(Keys.LeftControl) && Input.KeyPressed(Keys.A))
-            AddCard();
-
-        ui.UpdateElements(Input.Keys, Input.Mouse);
-
         //Update cards
-        NoDraggingCardUpdate(dt);
-        DraggingCardUpdate(dt);
+        if(renamingTitleCard != null)
+        {
+            renamingTitleCard.Update(dt);
+
+            if(renamingTitleCard.IsBeingRenamed == false)
+                renamingTitleCard = null;
+        }
+        else
+        {
+            if(Input.IsKeyDown(Keys.LeftControl) && Input.KeyPressed(Keys.A))
+                AddCard();
+
+            ui.UpdateElements(Input.Keys, Input.Mouse);
+
+            NoDraggingCardUpdate(dt);
+            DraggingCardUpdate(dt);
+        }
 
         //Remove all cards in removal queue
-        uiCards.RemoveAll(c => c.QueuedForRemoval);
+        uiCards.RemoveAll(c => c.IsQueuedForRemoval);
 
         UpdateCardPositions();
-
 
         //Debug info (red text)
         lbl_placeCardIndex.text = "placeCardIndex: " + placeCardIndex;
@@ -132,6 +142,12 @@ public class TasksProgram : Game
                 if(dragTask == null)
                 {
                     card.Update(dt);
+
+                    if(card.IsBeingRenamed)
+                    {
+                        renamingTitleCard = card;
+                        break;    
+                    }
 
                     //Check if being dragged
                     if(card.IsBeingDragged)
