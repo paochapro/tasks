@@ -5,7 +5,7 @@ using static Lib.Utils;
 
 namespace Lib;
 
-class Assets
+public class Assets
 {
     private ContentManager content;
 
@@ -32,7 +32,7 @@ class Assets
         return File.Exists(content.RootDirectory + @"\" + asset + ".xnb");
     }
 
-    public T? Load<T>(string asset) where T: class
+    public T Load<T>(string asset) where T: class
     {
         ContentAvaliable();
 
@@ -40,25 +40,24 @@ class Assets
         {
             print("\""+asset+"\" wasn't found in MonoGame:Load");
 
-            T? assetObj = default(T);
             Type assetType = typeof(T);
 
             if(defaultAssets.ContainsKey(assetType))
-                assetObj = defaultAssets[assetType] as T;
-            
-            return assetObj;
+                return (T)defaultAssets[assetType];
+            else
+                throw new Exception($"No default asset for {assetType} was found in MonoGame:Load");            
         }
         return content.Load<T>(asset);
     }
 
-    public Texture2D? LoadTexture(string asset) => Load<Texture2D>(asset);
+    public Texture2D LoadTexture(string asset) => Load<Texture2D>(asset);
     
     public T GetDefault<T>() where T: class 
     {
         Type assetType = typeof(T);
         if(defaultAssets.ContainsKey(assetType))
         {
-            T defaultAsset = defaultAssets[assetType] as T;
+            T defaultAsset = (T)defaultAssets[assetType];
             return defaultAsset;
         }
         else

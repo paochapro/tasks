@@ -85,6 +85,8 @@ abstract partial class Entity : ICloneable
 
     protected Entity(RectangleF hitbox, Texture2D? texture)
     {
+        PreDestroy += () => {};
+        PostDestroy += () => {};
         this.hitbox = hitbox;
         this.texture = texture;
     }

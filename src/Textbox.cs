@@ -12,6 +12,9 @@ class UITextbox
     Color textColor;
     SpriteFont font;
 
+    int showingFromIndex;
+    int showingToIndex;
+
     int _beamIndex;
     int BeamIndex {
         get => _beamIndex;
@@ -52,6 +55,42 @@ class UITextbox
     }
 
     public void Update(float dt)
+    {
+        Controls(dt);    
+        UpdateShowingIndexes(dt);
+    }
+
+    public void UpdateShowingIndexes(float dt)
+    {
+        const int fitCharacters = 16;
+
+        //Based on how many characters would fit in textbox rect, calculate end index
+        // int fitCharacters = 0;
+        // float totalWidth = 0;
+
+        // foreach(char ch in text.Skip(showingFromIndex))
+        // {
+        //     float characterWidth = font.MeasureString(ch.ToString()).X;
+        //     totalWidth += characterWidth;
+
+        //     if(totalWidth >= rect.Width)
+        //         break;
+
+        //     fitCharacters++;
+        // }
+
+        showingToIndex = showingFromIndex + fitCharacters;
+
+        if(BeamIndex > showingToIndex)
+            showingFromIndex = BeamIndex - fitCharacters;
+
+        if(BeamIndex < showingFromIndex)
+            showingFromIndex = BeamIndex;
+
+        showingToIndex = showingFromIndex + fitCharacters;
+    }
+
+    public void Controls(float dt)
     {
         const int left = -1;
         const int right = 1;
@@ -171,9 +210,18 @@ class UITextbox
     {
         spriteBatch.FillRectangle(rect, bodyColor);
         Vector2 textPos = Utils.CenteredTextPosInRect(rect, font, text);
-        spriteBatch.DrawString(font, text, textPos, textColor);
 
-        string textSubstring = text.Substring(0, BeamIndex);
+        string visibleText = "";
+
+        if(showingFromIndex <= lastCharIndex)
+        {
+            int visibleTextLength = Utils.clamp((showingToIndex - showingFromIndex) + 1, 0, text.Length - showingFromIndex); 
+            visibleText = text.Substring(showingFromIndex, visibleTextLength);
+            spriteBatch.DrawString(font, visibleText, textPos, textColor);
+        }
+
+        int localBeamIndex = BeamIndex - showingFromIndex;
+        string textSubstring = visibleText.Substring(0, localBeamIndex);
         int substringWidth = (int)font.MeasureString(textSubstring).X;
         int beamXOffset = substringWidth - beamWidth/2;
 

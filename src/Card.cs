@@ -324,6 +324,9 @@ public class UICard
             spriteBatch.DrawString(font, cardTitle, titlePos, bannerTitleColor, 0.0f, Vector2.Zero, scale, SpriteEffects.None, 0);
         }
 
+        if(program.DebugMode)
+            return;
+
         //Add task and color wheel buttons
         Color hoverRectColorAddTask = Color.Transparent;
         Color hoverRectColorColorWheel = Color.Transparent;

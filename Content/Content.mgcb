@@ -32,6 +32,13 @@
 /processorParam:TextureFormat=Color
 /build:color_wheel.png
 
+#begin consolas.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:consolas.spritefont
+
 #begin error.png
 /importer:TextureImporter
 /processor:TextureProcessor

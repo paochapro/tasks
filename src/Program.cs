@@ -17,6 +17,7 @@ public class TasksProgram : Game
     private readonly Color clearColor = new(100,100,100,255);
 
     public SpriteFont TextFont => textFont;
+    public Assets Assets => assets;
 
     //Window settings
     private Point screen;
@@ -57,6 +58,7 @@ public class TasksProgram : Game
     private List<Color> listOfColors;
     private List<Color> currentListOfColors;
     private bool debugMode;
+    public bool DebugMode => debugMode;
 
     protected override void Update(GameTime gameTime)
     {
