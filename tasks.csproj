@@ -14,6 +14,15 @@
       <PackageReference Include="Myra" Version="1.4.4" />
     </ItemGroup>
 
+    <!--Custom implicit usings-->
+    <ItemGroup>
+      <Using Include="Microsoft.Xna.Framework"/>
+      <Using Include="Microsoft.Xna.Framework.Graphics"/>
+      <Using Include="Microsoft.Xna.Framework.Input"/>
+      <Using Include="MonoGame.Extended"/>
+      <Using Include="Lib"/>
+    </ItemGroup>
+
     <ItemGroup>
       <Content Remove="C:\Users\Рома\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\CppNet.dll" />
       <Content Remove="C:\Users\Рома\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\libmojoshader_64.dll" />

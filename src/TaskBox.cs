@@ -1,9 +1,4 @@
-﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
-using MonoGame.Extended;
-using Lib;
-using static Lib.Utils;
+﻿using static Lib.Utils;
 
 namespace tasks;
 
@@ -24,19 +19,19 @@ public class UITaskBox
     //public bool IsChecked => isChecked;
     //public bool IsHovered => hover;
     //public Rectangle Rectangle => rectangle;
-
-    public bool QueuedForRemoval => queuedForRemoval;
-    public bool IsBeingDragged => isBeingDragged;
-    public UICard Owner { get => owner; set => owner = value; }
     
     private UICard owner;
     private Rectangle rectangle;
+    private SpriteFont textFont;
     private bool isChecked;
     private bool hover;
     private string description;
-    private bool queuedForRemoval;
-    private SpriteFont textFont;
+    private bool isQueuedForRemoval;
     private bool isBeingDragged;
+
+    public bool IsQueuedForRemoval => isQueuedForRemoval;
+    public bool IsBeingDragged => isBeingDragged;
+    public UICard Owner { get => owner; set => owner = value; }
 
     //Description
     public UITaskBox(TasksProgram program, string description, bool isChecked, UICard owner)
@@ -74,7 +69,7 @@ public class UITaskBox
 
         if(Input.MBPressed())
         {
-            queuedForRemoval = true;
+            isQueuedForRemoval = true;
             return;
         }
 
@@ -117,10 +112,7 @@ public class UITaskBox
         }
 
         //Description
-        Vector2 rectPos = rectangle.Location.ToVector2();
-        Vector2 measure = textFont.MeasureString(description);
-        float y = rectPos.Y + (rectangle.Height / 2 - measure.Y / 2);
-        float x = rectPos.X + (y - rectPos.Y);
-        spriteBatch.DrawString(textFont, description, new Vector2(x,y), Color.White);
+        Vector2 textPos = Utils.CenteredTextPosInRect(rectangle, textFont, description);
+        spriteBatch.DrawString(textFont, description, textPos, Color.White);
     }
 }

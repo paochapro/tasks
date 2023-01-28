@@ -89,6 +89,16 @@ internal static class Utils
 
     public static float lerp(float a, float b, float t) => (1-t) * a + t * b;
     public static float inverseLerp(float a, float b, float v) => (v-a) / (b-a);
+
+    //Something
+    public static Vector2 CenteredTextPosInRect(Rectangle rect, SpriteFont font, string text)
+    {
+        Vector2 rectPos = rect.Location.ToVector2();
+        Vector2 measure = font.MeasureString(text);
+        float y = rectPos.Y + (rect.Height / 2 - measure.Y / 2);
+        float x = rectPos.X + (y - rectPos.Y);
+        return new Vector2(x,y);
+    }
 }
 
 class ReadOnly2DArray<T>

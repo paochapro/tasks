@@ -1,10 +1,4 @@
-﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
-using MonoGame.Extended;
-using Lib;
-
-using static Lib.Utils;
+﻿using static Lib.Utils;
 
 namespace tasks;
 
@@ -82,10 +76,6 @@ public class TasksProgram : Game
         placeCardIndex = dragPos / cardCellSpace;
         placeCardIndex = clamp(placeCardIndex, 0, maxIndex);
         
-        //Switch debug mode
-        if(Input.KeyPressed(Keys.OemTilde))
-            debugMode = !debugMode;
-
         //Update cards
         if(renamingTitleCard != null)
         {
@@ -96,6 +86,10 @@ public class TasksProgram : Game
         }
         else
         {
+            //Switch debug mode
+            if(Input.KeyPressed(Keys.OemTilde))
+                debugMode = !debugMode;
+
             if(Input.IsKeyDown(Keys.LeftControl) && Input.KeyPressed(Keys.A))
                 AddCard();
 

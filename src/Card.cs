@@ -1,10 +1,4 @@
-﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
-using MonoGame.Extended;
-
-using Lib;
-using static Lib.Utils;
+﻿using static Lib.Utils;
 
 namespace tasks;
 
@@ -38,7 +32,7 @@ public class UICard
     public Card Card => card;
     public Rectangle Rectangle => rectangle;
     public bool IsBeingDragged => isBeingDragged;
-    public bool IsBeingRenamed => isBeingRenamed;
+    public bool IsBeingRenamed => titleRenameTextbox != null; //isBeingRenamed;
     public bool IsQueuedForRemoval => isQueuedForRemoval;
     public UITaskBox? DragTask { get => dragTask; set => dragTask = value; }
 
@@ -51,11 +45,14 @@ public class UICard
     private Card card;
     private TasksProgram program;
     private UITaskBox? dragTask;
+    private UITextbox? titleRenameTextbox;
     private int placeTaskIndex;
 
     private bool isBeingDragged;
-    private bool isBeingRenamed;
     private bool isQueuedForRemoval;
+
+    //Style
+    private SpriteFont font;
 
     private Color colorWheelButtonClr;
     private Color addTaskButtonClr;
@@ -66,6 +63,8 @@ public class UICard
     private readonly Color bannerTitleDefaultColor;
     private readonly Color bannerTitleHoverColor;
 
+    private int cardTitleMaxWidth;
+    private int textMarginX;
 
     public UICard(TasksProgram program, Card card)
     {
@@ -75,6 +74,12 @@ public class UICard
         uiTaskBoxes = new();
         this.card = card;
         this.program = program;
+        this.font = program.TextFont;
+
+        Rectangle absoluteBanner = rectangle with { Location = Point.Zero, Height = bannerHeight };
+        int textY = (int)Utils.CenteredTextPosInRect(absoluteBanner, font, "A").Y;
+        textMarginX = textY;
+        cardTitleMaxWidth = rectWidth - textMarginX*2;
 
         //Copying data from card
         this.bannerColor = card.BannerColor;
@@ -122,10 +127,17 @@ public class UICard
             return;
         }
 
-        if(isBeingRenamed)
+        if(titleRenameTextbox != null)
         {
+            if(Input.IsKeyDown(Keys.Enter))
+            {
+                cardTitle = titleRenameTextbox.Text;
+                titleRenameTextbox = null;
+            }
+
             if(Input.IsKeyDown(Keys.Escape))
-                isBeingRenamed = false;
+                titleRenameTextbox = null;
+
                 
             return;
         }
@@ -181,7 +193,13 @@ public class UICard
                 isQueuedForRemoval = true;
 
             if(Input.KeyPressed(Keys.F2))
-                isBeingRenamed = true;
+            {
+                Point pos = Utils.CenteredTextPosInRect(bannerRect, font, cardTitle).ToPoint();
+                Color bodyColor = bannerColor.DarkenBy(40);
+                Color textColor = Color.White;
+
+                titleRenameTextbox = new UITextbox(program.Window, pos, cardTitleMaxWidth, 9999, bodyColor, textColor, font, cardTitle);
+            }
         }
     }
 
@@ -210,7 +228,7 @@ public class UICard
         {
             //Calculating the index in task list at which we are hovering when dragging a task
             Rectangle body = rectangle with { 
-                Y = rectangle.Y + bannerHeight, 
+                Y = rectangle.Y + bannerHeight,
                 Height = rectangle.Height - bannerHeight 
             };
 
@@ -232,7 +250,7 @@ public class UICard
         }
 
         //Remove tasks that are in removal queue 
-        uiTaskBoxes.RemoveAll(tb => tb.QueuedForRemoval);
+        uiTaskBoxes.RemoveAll(tb => tb.IsQueuedForRemoval);
         UpdateTaskBoxesPosition();
     }
 
@@ -283,14 +301,26 @@ public class UICard
         Rectangle banner = rectangle with { Height = bannerHeight };
         spriteBatch.FillRectangle(banner, bannerColor);
 
-        //Banner title
-        Vector2 measure = program.TextFont.MeasureString(cardTitle);
-        Vector2 rectPos = banner.Location.ToVector2();
-        float offset = (banner.Height / 2 - measure.Y / 2);
-        Vector2 titlePos = rectPos + new Vector2(offset);
+        //Draw banner title
+        if(titleRenameTextbox != null)
+            titleRenameTextbox.Draw(spriteBatch);
+        else
+        {
+            float scale = 1.0f;
 
-        //Draw bannet title
-        spriteBatch.DrawString(program.TextFont, cardTitle, titlePos, bannerTitleColor);
+            float textWidth = font.MeasureString(cardTitle).X;
+            float widthSurpassValue = Utils.inverseLerp(0, cardTitleMaxWidth, textWidth);
+
+            if(widthSurpassValue > 1.0f)
+                scale = 1.0f / widthSurpassValue;
+
+            Vector2 measure = font.MeasureString(cardTitle) * scale;
+            Vector2 rectPos = banner.Location.ToVector2();
+            float y = (banner.Height / 2 - measure.Y / 2);
+            Vector2 titlePos = rectPos + new Vector2(textMarginX, y);
+
+            spriteBatch.DrawString(font, cardTitle, titlePos, bannerTitleColor, 0.0f, Vector2.Zero, scale, SpriteEffects.None, 0);
+        }
 
         //Add task and color wheel buttons
         Color hoverRectColorAddTask = Color.Transparent;
@@ -334,19 +364,4 @@ public class UICard
     }
 
     private void AddTask(UITaskBox taskBox) { uiTaskBoxes.Add(taskBox); UpdateRectHeight(); }
-
-    private void TitleReadTextInput(object? sender, TextInputEventArgs args)
-    {
-        const string avaliableCharaters = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890-=!@#$%^&*()_+[]{};':|\\\",./<>?`~ ";
-        char character = args.Character;
-
-        if(character == '\b')
-        {
-            if(cardTitle.Length > 0)
-                cardTitle.Remove(cardTitle.Length-1, 1);
-        }
-
-        if(avaliableCharaters.Contains(character))
-            cardTitle += character;
-    }
 }
