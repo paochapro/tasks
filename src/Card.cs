@@ -79,7 +79,7 @@ public class UICard
         Rectangle absoluteBanner = rectangle with { Location = Point.Zero, Height = bannerHeight };
         int textY = (int)Utils.CenteredTextPosInRect(absoluteBanner, font, "A").Y;
         textMarginX = textY;
-        cardTitleMaxWidth = rectWidth - textMarginX*2;
+        cardTitleMaxWidth = rectWidth - cardButtonsWidth * 2 - textMarginX*2;
 
         //Copying data from card
         this.bannerColor = card.BannerColor;
@@ -129,6 +129,8 @@ public class UICard
 
         if(titleRenameTextbox != null)
         {
+            titleRenameTextbox.Update(dt);
+
             if(Input.IsKeyDown(Keys.Enter))
             {
                 cardTitle = titleRenameTextbox.Text;
