@@ -20,6 +20,8 @@ class UITextbox
         }
     }
 
+    int CappedBeamIndex => Utils.clamp(BeamIndex, 0, lastCharIndex);
+
     //Emulating key repeating
     const float keyRepeatWaitTime = 0.5f;
     const float keyRefreshWaitTime = 0.02f;
@@ -54,13 +56,56 @@ class UITextbox
         const int left = -1;
         const int right = 1;
 
-        var justPressed = (int dir) => {
-            keyRepeatTimer = keyRepeatWaitTime;
-            arrowKeyDir = dir;
-            BeamIndex += dir;
+        var ctrlSkip = (int dir) => 
+        {
+            const char space = ' ';
+            int end = dir == left ? -1 : lastCharIndex + 1;
+
+            int addLeft = dir == left ? 1 : 0;
+            int addRight = dir == right ? 1 : 0;
+
+            int movedOffset = Utils.clamp(BeamIndex - 1, 0, lastCharIndex);
+
+            if(dir == left && text[movedOffset] == space)
+                BeamIndex -= 1;
+
+            if(text[CappedBeamIndex] == space)
+            {
+                for(int i = CappedBeamIndex; i != end; i += dir)
+                {
+                    if(text[i] != space)
+                    {
+                        BeamIndex = i;
+                        break;
+                    }
+                    BeamIndex = i + addRight;
+                }
+            }
+
+            for(int i = CappedBeamIndex; i != end; i += dir)
+            {
+                if(text[i] == space)
+                {
+                    BeamIndex = i + addLeft;
+                    break;
+                }
+                BeamIndex = i + addRight;
+            }
         };
 
-        var keepPressing = (int dir) => {
+        var justPressed = (int dir) => 
+        {
+            if(Input.IsKeyDown(Keys.LeftControl))
+                ctrlSkip(dir);
+            else
+                BeamIndex += dir;
+
+            arrowKeyDir = dir;
+            keyRepeatTimer = keyRepeatWaitTime;
+        };
+
+        var keepPressing = (int dir) => 
+        {
             keyRepeatTimer -= dt;
 
             if(keyRepeatTimer <= 0)
@@ -69,7 +114,11 @@ class UITextbox
 
                 if(keyRefreshTimer <= 0)
                 {
-                    BeamIndex += dir;
+                    if(Input.IsKeyDown(Keys.LeftControl))
+                        ctrlSkip(dir);
+                    else
+                        BeamIndex += dir;
+
                     keyRefreshTimer = keyRefreshWaitTime;
                 }
             }
@@ -77,7 +126,7 @@ class UITextbox
         
         if(Input.KeyPressed(Keys.Left)) justPressed(left);
         if(Input.KeyPressed(Keys.Right)) justPressed(right);
-    
+
         if(Input.IsKeyDown(Keys.Left) && arrowKeyDir == left)
             keepPressing(left);
 
