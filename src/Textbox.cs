@@ -20,6 +20,12 @@ class UITextbox
         }
     }
 
+    //Emulating key repeating
+    const float keyRepeatWaitTime = 0.5f;
+    const float keyRefreshWaitTime = 0.02f;
+    float keyRepeatTimer;
+    float keyRefreshTimer;
+    int arrowKeyDir;
 
     public Rectangle Rect { get => rect; set => rect = value; }
     public Color BodyColor { get => bodyColor; set => bodyColor = value; }
@@ -45,9 +51,38 @@ class UITextbox
 
     public void Update(float dt)
     {
-        if(Input.KeyPressed(Keys.Left)) BeamIndex -= 1;
-        if(Input.KeyPressed(Keys.Right)) BeamIndex += 1;
+        const int left = -1;
+        const int right = 1;
 
+        var justPressed = (int dir) => {
+            keyRepeatTimer = keyRepeatWaitTime;
+            arrowKeyDir = dir;
+            BeamIndex += dir;
+        };
+
+        var keepPressing = (int dir) => {
+            keyRepeatTimer -= dt;
+
+            if(keyRepeatTimer <= 0)
+            {
+                keyRefreshTimer -= dt;
+
+                if(keyRefreshTimer <= 0)
+                {
+                    BeamIndex += dir;
+                    keyRefreshTimer = keyRefreshWaitTime;
+                }
+            }
+        };
+        
+        if(Input.KeyPressed(Keys.Left)) justPressed(left);
+        if(Input.KeyPressed(Keys.Right)) justPressed(right);
+    
+        if(Input.IsKeyDown(Keys.Left) && arrowKeyDir == left)
+            keepPressing(left);
+
+        if(Input.IsKeyDown(Keys.Right) && arrowKeyDir == right) 
+            keepPressing(right);
     }
 
     public void TextInput(object? sender, TextInputEventArgs args)
