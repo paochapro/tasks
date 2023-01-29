@@ -23,7 +23,7 @@ class UITextbox
         }
     }
 
-    int CappedBeamIndex => Utils.clamp(BeamIndex, 0, lastCharIndex);
+    //int CappedBeamIndex => Utils.clamp(BeamIndex, 0, lastCharIndex);
 
     //Emulating key repeating
     const float keyRepeatWaitTime = 0.5f;
@@ -60,7 +60,30 @@ class UITextbox
         UpdateShowingIndexes(dt);
     }
 
-    public void UpdateShowingIndexes(float dt)
+    public void Draw(SpriteBatch spriteBatch)
+    {
+        spriteBatch.FillRectangle(rect, bodyColor);
+        Vector2 textPos = Utils.CenteredTextPosInRect(rect, font, text);
+
+        string visibleText = "";
+
+        if(showingFromIndex <= lastCharIndex)
+        {
+            int visibleTextLength = Utils.clamp((showingToIndex - showingFromIndex) + 1, 0, text.Length - showingFromIndex); 
+            visibleText = text.Substring(showingFromIndex, visibleTextLength);
+            spriteBatch.DrawString(font, visibleText, textPos, textColor);
+        }
+
+        int localBeamIndex = BeamIndex - showingFromIndex;
+        string textSubstring = visibleText.Substring(0, localBeamIndex);
+        int substringWidth = (int)font.MeasureString(textSubstring).X;
+        int beamXOffset = substringWidth - beamWidth/2;
+
+        Rectangle beamRect = rect with { Width = beamWidth, X = rect.X + beamXOffset };
+        spriteBatch.FillRectangle(beamRect, Color.White);
+    }
+
+    private void UpdateShowingIndexes(float dt)
     {
         const int fitCharacters = 16;
 
@@ -90,52 +113,15 @@ class UITextbox
         showingToIndex = showingFromIndex + fitCharacters;
     }
 
-    public void Controls(float dt)
+    private void Controls(float dt)
     {
         const int left = -1;
         const int right = 1;
 
-        var ctrlSkip = (int dir) => 
-        {
-            const char space = ' ';
-            int end = dir == left ? -1 : lastCharIndex + 1;
-
-            int addLeft = dir == left ? 1 : 0;
-            int addRight = dir == right ? 1 : 0;
-
-            int movedOffset = Utils.clamp(BeamIndex - 1, 0, lastCharIndex);
-
-            if(dir == left && text[movedOffset] == space)
-                BeamIndex -= 1;
-
-            if(text[CappedBeamIndex] == space)
-            {
-                for(int i = CappedBeamIndex; i != end; i += dir)
-                {
-                    if(text[i] != space)
-                    {
-                        BeamIndex = i;
-                        break;
-                    }
-                    BeamIndex = i + addRight;
-                }
-            }
-
-            for(int i = CappedBeamIndex; i != end; i += dir)
-            {
-                if(text[i] == space)
-                {
-                    BeamIndex = i + addLeft;
-                    break;
-                }
-                BeamIndex = i + addRight;
-            }
-        };
-
         var justPressed = (int dir) => 
         {
             if(Input.IsKeyDown(Keys.LeftControl))
-                ctrlSkip(dir);
+                MoveBeamToWordSide(dir);
             else
                 BeamIndex += dir;
 
@@ -154,7 +140,7 @@ class UITextbox
                 if(keyRefreshTimer <= 0)
                 {
                     if(Input.IsKeyDown(Keys.LeftControl))
-                        ctrlSkip(dir);
+                        MoveBeamToWordSide(dir);
                     else
                         BeamIndex += dir;
 
@@ -173,7 +159,7 @@ class UITextbox
             keepPressing(right);
     }
 
-    public void TextInput(object? sender, TextInputEventArgs args)
+    private void TextInput(object? sender, TextInputEventArgs args)
     {
         char character = args.Character;
 
@@ -181,12 +167,18 @@ class UITextbox
         {
             if (text.Length > 0)
             {
-                int removeIndex = BeamIndex - 1;
-                if(removeIndex < 0) return;
+                if(Input.IsKeyDown(Keys.LeftControl))
+                    EraseWord();
+                else 
+                {
+                    int removeIndex = BeamIndex - 1;
+                    if(removeIndex < 0) return;
 
-                text = text.Remove(removeIndex, 1);
-                BeamIndex -= 1;
+                    text = text.Remove(removeIndex, 1);
+                    BeamIndex -= 1;
+                }
             }
+
             return;
         }
 
@@ -206,26 +198,95 @@ class UITextbox
         }
     }
 
-    public void Draw(SpriteBatch spriteBatch)
+    //Control functionality
+    private void EraseWord()
     {
-        spriteBatch.FillRectangle(rect, bodyColor);
-        Vector2 textPos = Utils.CenteredTextPosInRect(rect, font, text);
+        const char space = ' ';
+        const int left = -1;
 
-        string visibleText = "";
+        int endBeamIndex = BeamIndex;
 
-        if(showingFromIndex <= lastCharIndex)
+        int checkIndex = BeamIndex - 1;
+        checkIndex = IndexClamp(checkIndex);
+
+        if(text[checkIndex] == space)
+            MoveBeamWhile(left, space);
+        else
+            MoveBeamUntil(left, space);
+
+        text = text.Remove(BeamIndex, endBeamIndex - BeamIndex);
+    }
+
+    private void MoveBeamToWordSide(int dir)
+    {
+        if(text.Length == 0) return;
+
+        const int left = -1;
+        const int right = 1;
+        const char space = ' ';
+
+        //Check if character at beam (or previous from beam in case of going left) is space
+        //If it is them move beam to word 
+        int checkIndex = BeamIndex;
+
+        if(dir == left) 
+            checkIndex -= 1;
+        
+        checkIndex = IndexClamp(checkIndex);
+
+        if(text[checkIndex] == space)
         {
-            int visibleTextLength = Utils.clamp((showingToIndex - showingFromIndex) + 1, 0, text.Length - showingFromIndex); 
-            visibleText = text.Substring(showingFromIndex, visibleTextLength);
-            spriteBatch.DrawString(font, visibleText, textPos, textColor);
+            MoveBeamWhile(dir, space);
+
+            if(BeamIndex == 0)
+                return;
+
+            if(BeamIndex == lastCharIndex + 1)
+                return;
         }
 
-        int localBeamIndex = BeamIndex - showingFromIndex;
-        string textSubstring = visibleText.Substring(0, localBeamIndex);
-        int substringWidth = (int)font.MeasureString(textSubstring).X;
-        int beamXOffset = substringWidth - beamWidth/2;
-
-        Rectangle beamRect = rect with { Width = beamWidth, X = rect.X + beamXOffset };
-        spriteBatch.FillRectangle(beamRect, Color.White);
+        //When beam is at word then move it to word side
+        MoveBeamUntil(dir, space);
     }
+
+    private void MoveBeam(int dir, char ch, bool whileCharacter)
+    {
+        if(text.Length == 0) return;
+
+        const int left = -1;
+        const int right = 1;
+
+        int end = dir == left ? -1 : lastCharIndex + 1;
+
+        for(int i = BeamIndex; i != end; i += dir)
+        {
+            int checkIndex = i;
+
+            if(dir == left)
+            {
+                checkIndex -= 1;
+                checkIndex = IndexClamp(checkIndex);
+            }
+
+            bool breakCondition;
+
+            if(whileCharacter)
+                breakCondition = text[checkIndex] != ch;
+            else
+                breakCondition = text[checkIndex] == ch;
+
+            BeamIndex = i;
+            
+            if(breakCondition)
+                return;
+        }
+
+        if(dir == left) BeamIndex = 0;
+        if(dir == right) BeamIndex = lastCharIndex + 1;
+    }
+
+    private void MoveBeamUntil(int dir, char ch) => MoveBeam(dir, ch, false);
+    private void MoveBeamWhile(int dir, char ch) => MoveBeam(dir, ch, true);
+
+    private int IndexClamp(int index) => Utils.clamp(index, 0, lastCharIndex);
 }
