@@ -7,6 +7,7 @@ class UITextbox
     string text;
     int maxTextLength;
     int lastCharIndex => text.Length-1;
+    int beamMaxIndex => lastCharIndex+1;
     Rectangle rect;
     Color bodyColor;
     Color textColor;
@@ -19,7 +20,7 @@ class UITextbox
     int BeamIndex {
         get => _beamIndex;
         set {
-            _beamIndex = Utils.clamp(value, 0, lastCharIndex + 1);
+            _beamIndex = Utils.clamp(value, 0, beamMaxIndex);
         }
     }
 
@@ -162,10 +163,12 @@ class UITextbox
     private void TextInput(object? sender, TextInputEventArgs args)
     {
         char character = args.Character;
+        const char backspace = '\b';
+        const char delete = (char)127;
 
-        if (character == '\b')
+        if (text.Length > 0)
         {
-            if (text.Length > 0)
+            if (character == backspace)
             {
                 if(Input.IsKeyDown(Keys.LeftControl))
                     EraseWord();
@@ -177,9 +180,17 @@ class UITextbox
                     text = text.Remove(removeIndex, 1);
                     BeamIndex -= 1;
                 }
+
+                return;
             }
 
-            return;
+            if (character == delete)
+            {
+                if(BeamIndex <= lastCharIndex)
+                    text = text.Remove(BeamIndex, 1);
+
+                return;
+            }
         }
 
         bool canAddCharacter = (
@@ -197,6 +208,8 @@ class UITextbox
             BeamIndex += 1;
         }
     }
+
+    private int IndexClamp(int index) => Utils.clamp(index, 0, lastCharIndex);
 
     //Control functionality
     private void EraseWord()
@@ -241,7 +254,7 @@ class UITextbox
             if(BeamIndex == 0)
                 return;
 
-            if(BeamIndex == lastCharIndex + 1)
+            if(BeamIndex == beamMaxIndex)
                 return;
         }
 
@@ -256,7 +269,7 @@ class UITextbox
         const int left = -1;
         const int right = 1;
 
-        int end = dir == left ? -1 : lastCharIndex + 1;
+        int end = dir == left ? -1 : beamMaxIndex;
 
         for(int i = BeamIndex; i != end; i += dir)
         {
@@ -282,11 +295,9 @@ class UITextbox
         }
 
         if(dir == left) BeamIndex = 0;
-        if(dir == right) BeamIndex = lastCharIndex + 1;
+        if(dir == right) BeamIndex = beamMaxIndex;
     }
 
     private void MoveBeamUntil(int dir, char ch) => MoveBeam(dir, ch, false);
     private void MoveBeamWhile(int dir, char ch) => MoveBeam(dir, ch, true);
-
-    private int IndexClamp(int index) => Utils.clamp(index, 0, lastCharIndex);
 }
