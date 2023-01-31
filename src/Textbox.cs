@@ -13,6 +13,8 @@ class UITextbox
     Color textColor;
     SpriteFont font;
 
+    public TasksProgram program;
+
     int showingFromIndex;
     int showingToIndex;
 
@@ -21,6 +23,7 @@ class UITextbox
         get => _beamIndex;
         set {
             _beamIndex = Utils.clamp(value, 0, beamMaxIndex);
+            //UpdateShowingIndexes();
         }
     }
 
@@ -36,8 +39,8 @@ class UITextbox
     public Rectangle Rect { get => rect; set => rect = value; }
     public Color BodyColor { get => bodyColor; set => bodyColor = value; }
     public Color TextColor { get => textColor; set => textColor = value; }
-    public string Text => text;
     public EventHandler<TextInputEventArgs> TextInputHandler => TextInput;
+    public string Text => text;
 
     public UITextbox(GameWindow windowToConnect, Point pos, int width, int maxTextLength, 
         Color bodyColor, Color textColor, SpriteFont font, string startText)
@@ -52,13 +55,18 @@ class UITextbox
         rect.Width = width;
         rect.Height = (int)font.MeasureString(text).Y;
 
+        showingFromIndex = 0;
+        showingToIndex = 0;
+
         windowToConnect.TextInput += TextInputHandler;
     }
 
     public void Update(float dt)
     {
-        Controls(dt);    
-        UpdateShowingIndexes(dt);
+        Controls(dt);
+        UpdateShowingIndexes();
+        program.lbl_showingFromIndex.text = "showingFromIndex: " + showingFromIndex; 
+        program.lbl_showingToIndex.text = "showingToIndex: " + showingToIndex;
     }
 
     public void Draw(SpriteBatch spriteBatch)
@@ -70,7 +78,8 @@ class UITextbox
 
         if(showingFromIndex <= lastCharIndex)
         {
-            int visibleTextLength = Utils.clamp((showingToIndex - showingFromIndex) + 1, 0, text.Length - showingFromIndex); 
+            int toIndex = Utils.clamp(showingToIndex, 0, lastCharIndex);
+            int visibleTextLength = toIndex - showingFromIndex + 1; 
             visibleText = text.Substring(showingFromIndex, visibleTextLength);
             spriteBatch.DrawString(font, visibleText, textPos, textColor);
         }
@@ -82,36 +91,98 @@ class UITextbox
 
         Rectangle beamRect = rect with { Width = beamWidth, X = rect.X + beamXOffset };
         spriteBatch.FillRectangle(beamRect, Color.White);
+
+        //Do not use, the function doesnt handle situations where indexes are out of bounds for now
+        var drawVisibleTextIndexes = () => {
+            textSubstring = text.Substring(0, showingFromIndex);
+            substringWidth = (int)font.MeasureString(textSubstring).X;
+
+            int leftXOffset = substringWidth - beamWidth/2;
+
+            textSubstring = text.Substring(0, showingToIndex);
+            substringWidth = (int)font.MeasureString(textSubstring).X;
+
+            int rightXOffset = substringWidth - beamWidth/2;
+
+            Rectangle leftRect = beamRect with { X = rect.X + leftXOffset, Height = 3, Width = 5 };
+            Rectangle rightRect = beamRect with { X = rect.X + rightXOffset, Height = 3, Width = 5 };
+            spriteBatch.FillRectangle(leftRect, Color.Red);
+            spriteBatch.FillRectangle(rightRect, Color.Blue);
+        };
     }
 
-    private void UpdateShowingIndexes(float dt)
+    private void UpdateShowingIndexes()
     {
-        const int fitCharacters = 16;
+        if(text.Length == 0)
+        {
+            showingFromIndex = 0;
+            showingToIndex = 0;
+        }
 
-        //Based on how many characters would fit in textbox rect, calculate end index
-        // int fitCharacters = 0;
-        // float totalWidth = 0;
-
-        // foreach(char ch in text.Skip(showingFromIndex))
-        // {
-        //     float characterWidth = font.MeasureString(ch.ToString()).X;
-        //     totalWidth += characterWidth;
-
-        //     if(totalWidth >= rect.Width)
-        //         break;
-
-        //     fitCharacters++;
-        // }
-
-        showingToIndex = showingFromIndex + fitCharacters;
+        //Calculate new from and to indexes
+        int lastVisibleCharacterIndex = Utils.clamp(BeamIndex, 0, lastCharIndex);
+        int firstVisibleCharacterIndex = Utils.clamp(BeamIndex, 0, lastCharIndex);
 
         if(BeamIndex > showingToIndex)
-            showingFromIndex = BeamIndex - fitCharacters;
+        {
+            showingToIndex = lastVisibleCharacterIndex;
+            UpdateShowingFromIndex();
+        }
 
-        if(BeamIndex < showingFromIndex)
-            showingFromIndex = BeamIndex;
+        if(BeamIndex <= showingFromIndex)
+        {
+            showingFromIndex = firstVisibleCharacterIndex;
+            UpdateShowingToIndex();
+        }
+    }
 
-        showingToIndex = showingFromIndex + fitCharacters;
+    private void UpdateShowingFromIndex()
+    {
+        if(text.Length == 0)
+        {
+            showingFromIndex = 0;
+            return;
+        }
+
+        int result = showingToIndex - GetFitCharacters(showingToIndex, -1) + 1;
+        showingFromIndex = result;
+    }
+
+    private void UpdateShowingToIndex()
+    {
+        if(text.Length == 0)
+        {
+            showingToIndex = 0;
+            return;
+        }
+
+        int result = showingFromIndex + GetFitCharacters(showingFromIndex, 1) - 1;
+        showingToIndex = result;
+    }
+
+    private int GetFitCharacters(int index, int dir)
+    {
+        int fitCharacters = 0;
+        int end = (dir == -1) ? -1 : lastCharIndex+1;
+        float totalWidth = 0;
+
+        if(index > lastCharIndex || index < 0)
+            return 0;
+
+        for(int i = index; i != end; i += dir)
+        {
+            totalWidth += font.MeasureString(text[i].ToString()).X;
+
+            if(totalWidth > rect.Width)
+                break;
+
+            fitCharacters++;
+        }
+
+        //string strDir = dir == -1 ? "left" : "right";
+        //Utils.print($"(from {index} to {strDir}) fit characters: {fitCharacters}");
+
+        return fitCharacters;
     }
 
     private void Controls(float dt)
@@ -181,6 +252,8 @@ class UITextbox
                     BeamIndex -= 1;
                 }
 
+                UpdateShowingToIndex();
+
                 return;
             }
 
@@ -188,6 +261,8 @@ class UITextbox
             {
                 if(BeamIndex <= lastCharIndex)
                     text = text.Remove(BeamIndex, 1);
+
+                UpdateShowingToIndex();
 
                 return;
             }
@@ -206,6 +281,8 @@ class UITextbox
                 text = text.Insert(BeamIndex, character.ToString());
 
             BeamIndex += 1;
+
+            UpdateShowingToIndex();
         }
     }
 

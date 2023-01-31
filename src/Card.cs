@@ -201,6 +201,7 @@ public class UICard
                 Color textColor = Color.White;
 
                 titleRenameTextbox = new UITextbox(program.Window, pos, cardTitleMaxWidth, 9999, bodyColor, textColor, font, cardTitle);
+                titleRenameTextbox.program = this.program;
             }
         }
     }

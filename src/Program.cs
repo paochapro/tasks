@@ -53,6 +53,10 @@ public class TasksProgram : Game
     private Label lbl_placeCardIndex;
     private Label lbl_placeTaskIndex;
     private Label lbl_dt;
+
+    public Label lbl_showingFromIndex;
+    public Label lbl_showingToIndex;
+    
     public Label Label_placeTaskIndex => lbl_placeTaskIndex;
 
     private List<Color> listOfColors;
@@ -114,11 +118,15 @@ public class TasksProgram : Game
             lbl_placeCardIndex.Hidden = false;
             lbl_placeTaskIndex.Hidden = false;
             lbl_dt.Hidden = false;
+            lbl_showingFromIndex.Hidden = false;
+            lbl_showingToIndex.Hidden = false;
         }
         else {
             lbl_placeCardIndex.Hidden = true;
             lbl_placeTaskIndex.Hidden = true;
             lbl_dt.Hidden = true;
+            lbl_showingFromIndex.Hidden = true;
+            lbl_showingToIndex.Hidden = true;
         }
 
         Input.CycleEnd();
@@ -314,6 +322,9 @@ public class TasksProgram : Game
         lbl_placeCardIndex = new(ui, new(0, 500), "placeCardIndex: #", Color.Red);
         lbl_placeTaskIndex = new(ui, new(0, 500-30), "placeTaskIndex: #", Color.Red);
         lbl_dt = new(ui, new(0, 500-60), "dt: #", Color.Red);
+
+        lbl_showingFromIndex = new(ui, new(0, 500-90), "showingFromIndex: #", Color.Red);
+        lbl_showingToIndex = new(ui, new(0, 500-120), "showingToIndex: #", Color.Red);
 
         //Randomized cards
         var addRandomizedCards = () => {
