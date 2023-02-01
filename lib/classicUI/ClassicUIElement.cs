@@ -5,10 +5,10 @@ using MonoGame.Extended;
 
 namespace Lib;
 
-public abstract class UIElement
+public abstract class ClassicUIElement
 {
     //Fiels
-    private UI ui;
+    private ClassicUIManager ui;
     private bool locked = false;
     protected int layer = 0;
     protected bool allowHold;
@@ -21,7 +21,7 @@ public abstract class UIElement
     protected Color textColor = Color.Purple;
 
     //Properties
-    public UI UI => ui;
+    public ClassicUIManager ClassicUIManager => ui;
     public bool Hidden { get; set; }
     public int Layer => layer;
     public bool Locked
@@ -42,14 +42,14 @@ public abstract class UIElement
     public Point Position { get => rect.Location; set => rect.Location = value; }
     public Point Size { get => rect.Size; set => rect.Size = value; }
 
-    protected UIElement(UI ui)
+    protected ClassicUIElement(ClassicUIManager ui)
     {
         this.ui = ui;
         ui.Add(this);
         text = "";
     }
 
-    protected UIElement(UI ui, Rectangle rect, string text)
+    protected ClassicUIElement(ClassicUIManager ui, Rectangle rect, string text)
     {
         this.ui = ui;
         ui.Add(this);
@@ -77,6 +77,6 @@ public abstract class UIElement
         }
     }
 
-    public virtual void _Draw(SpriteBatch spriteBatch) => throw new NotImplementedException("draw isnt implemented on this UI element (UIElement:_Draw)");
-    public virtual void Activate() => throw new NotImplementedException("activation isnt implemented on this UI element (UIElement:Activate)");
+    public virtual void _Draw(SpriteBatch spriteBatch) => throw new NotImplementedException("draw isnt implemented on this ClassicUIManager element (ClassicUIElement:_Draw)");
+    public virtual void Activate() => throw new NotImplementedException("activation isnt implemented on this ClassicUIManager element (ClassicUIElement:Activate)");
 }

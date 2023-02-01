@@ -4,17 +4,17 @@ using MonoGame.Extended;
 
 namespace Lib;
 
-public class Label : UIElement
+public class Label : ClassicUIElement
 {
     public Color Color { get; set; }
 
-    public Label(UI ui, Point pos, string text, Color color) : base(ui, new Rectangle(pos, Point.Zero), text)
+    public Label(ClassicUIManager ui, Point pos, string text, Color color) : base(ui, new Rectangle(pos, Point.Zero), text)
     {
         Color = color;
     }
     
     public override void _Draw(SpriteBatch spriteBatch)
     {
-        spriteBatch.DrawString(UI.Font, text, rect.Location.ToVector2(), Color);
+        spriteBatch.DrawString(ClassicUIManager.Font, text, rect.Location.ToVector2(), Color);
     }
 }

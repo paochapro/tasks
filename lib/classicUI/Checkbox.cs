@@ -5,7 +5,7 @@ using static Lib.Utils;
 
 namespace Lib;
 
-class Checkbox : UIElement
+class Checkbox : ClassicUIElement
 {
     static readonly Point size = new Point(24, 24);
     const int textOffset = 5;
@@ -15,7 +15,7 @@ class Checkbox : UIElement
     event Action onCheck;
     event Action onUncheck;
 
-    public Checkbox(UI ui, Point pos, Action onCheck, Action onUncheck, string text, int layer) 
+    public Checkbox(ClassicUIManager ui, Point pos, Action onCheck, Action onUncheck, string text, int layer) 
         : base(ui, new Rectangle(pos, Point.Zero), text)
     {
         this.onCheck = onCheck;
@@ -46,10 +46,10 @@ class Checkbox : UIElement
 
         float scale = 0.7f;
 
-        Vector2 measure = UI.Font.MeasureString(text) * scale;
+        Vector2 measure = ClassicUIManager.Font.MeasureString(text) * scale;
         Vector2 position = new Vector2(box.Right + textOffset, center(box.Y, box.Bottom, measure.Y));
 
-        spriteBatch.DrawString(UI.Font, text, position, borderColor, 0, new Vector2(0, 0), scale, SpriteEffects.None, 0);
+        spriteBatch.DrawString(ClassicUIManager.Font, text, position, borderColor, 0, new Vector2(0, 0), scale, SpriteEffects.None, 0);
 
         if(isChecked)
         {

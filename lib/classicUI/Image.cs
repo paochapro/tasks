@@ -4,17 +4,17 @@ using MonoGame.Extended;
 
 namespace Lib;
 
-class Image : UIElement
+class Image : ClassicUIElement
 {
     public Texture2D Texture { get; private set; }
     public Angle Rotation { get; set; }
     
-    public Image(UI ui, Texture2D image, Rectangle box) : base(ui, box, "")
+    public Image(ClassicUIManager ui, Texture2D image, Rectangle box) : base(ui, box, "")
     {
         Texture = image;
     }
     
-    public Image(UI ui, Texture2D image, Point position)
+    public Image(ClassicUIManager ui, Texture2D image, Point position)
         : this(ui, image, new Rectangle(position, image.Bounds.Size))
     {
     }

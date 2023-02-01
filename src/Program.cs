@@ -12,7 +12,7 @@ public class TasksProgram : Game
 
     //Other stuff
     private Assets assets;
-    private UI ui;
+    private ClassicUIManager classicUIManager;
     private SpriteFont textFont;
     private readonly Color clearColor = new(100,100,100,255);
 
@@ -38,7 +38,8 @@ public class TasksProgram : Game
     private List<UICard> uiCards = new();
     private UICard? dragCard;
     private UITaskBox? dragTask;
-    private UICard? renamingTitleCard;
+    TasksUIElement? renamingElement;
+
     private int placeCardIndex;
 
     //Other stuff
@@ -83,12 +84,12 @@ public class TasksProgram : Game
         placeCardIndex = clamp(placeCardIndex, 0, maxIndex);
         
         //Update cards
-        if(renamingTitleCard != null)
+        if(renamingElement != null)
         {
-            renamingTitleCard.Update(dt);
+            renamingElement.Update(dt);
 
-            if(renamingTitleCard.IsBeingRenamed == false)
-                renamingTitleCard = null;
+            if(renamingElement.IsBeingRenamed == false)
+                renamingElement = null;
         }
         else
         {
@@ -99,7 +100,7 @@ public class TasksProgram : Game
             if(Input.IsKeyDown(Keys.LeftControl) && Input.KeyPressed(Keys.A))
                 AddCard();
 
-            ui.UpdateElements(Input.Keys, Input.Mouse);
+            classicUIManager.UpdateElements(Input.Keys, Input.Mouse);
 
             NoDraggingCardUpdate(dt);
             DraggingCardUpdate(dt);
@@ -149,7 +150,7 @@ public class TasksProgram : Game
 
                     if(card.IsBeingRenamed)
                     {
-                        renamingTitleCard = card;
+                        renamingElement = card;
                         break;    
                     }
 
@@ -272,8 +273,8 @@ public class TasksProgram : Game
             foreach(UICard card in uiCards)
                 card.Draw(spriteBatch);
 
-            //Drawing lib ui
-            ui.DrawElements(spriteBatch);
+            //Drawing lib classicUIManager
+            classicUIManager.DrawElements(spriteBatch);
 
             dragCard?.Draw(spriteBatch);
             dragTask?.Draw(spriteBatch);
@@ -285,7 +286,7 @@ public class TasksProgram : Game
     {
         spriteBatch = new(GraphicsDevice);
         assets = new Assets(Content);
-        ui = new UI(this);
+        classicUIManager = new ClassicUIManager(this);
         textFont = assets.GetDefault<SpriteFont>();
         UICard.plusTexture = Content.Load<Texture2D>("plus");
         UICard.colorWheelTexture = Content.Load<Texture2D>("color_wheel");
@@ -302,29 +303,29 @@ public class TasksProgram : Game
         currentListOfColors = listOfColors.ToList();
 
         //UI colors
-        ui.BodyDefaultColor = new Color(40,40,40);
-        ui.BodyLockedColor = ui.BodyDefaultColor.DarkenBy(60);
-        ui.BodyHoverColor = ui.BodyDefaultColor.LightenBy(10);
+        classicUIManager.BodyDefaultColor = new Color(40,40,40);
+        classicUIManager.BodyLockedColor = classicUIManager.BodyDefaultColor.DarkenBy(60);
+        classicUIManager.BodyHoverColor = classicUIManager.BodyDefaultColor.LightenBy(10);
 
-        ui.BorderDefaultColor = ui.BodyDefaultColor.DarkenBy(20);
-        ui.BorderLockedColor = ui.BorderDefaultColor.DarkenBy(60);
-        ui.BorderHoverColor = ui.BorderDefaultColor.LightenBy(10);
+        classicUIManager.BorderDefaultColor = classicUIManager.BodyDefaultColor.DarkenBy(20);
+        classicUIManager.BorderLockedColor = classicUIManager.BorderDefaultColor.DarkenBy(60);
+        classicUIManager.BorderHoverColor = classicUIManager.BorderDefaultColor.LightenBy(10);
 
-        ui.TextDefaultColor = Color.White;
-        ui.TextHoverColor = Color.White;
-        ui.TextLockedColor = Color.White.DarkenBy(60);
+        classicUIManager.TextDefaultColor = Color.White;
+        classicUIManager.TextHoverColor = Color.White;
+        classicUIManager.TextLockedColor = Color.White.DarkenBy(60);
 
         //Bottom bar rects
         bottomBarRect = new Rectangle(0, Screen.Y - bottomBarHeight, Screen.X, bottomBarHeight);
         cardBinRect = bottomBarRect with { Width = cardBinWidth, X = bottomBarRect.Right - cardBinWidth };
 
         //Debug labels
-        lbl_placeCardIndex = new(ui, new(0, 500), "placeCardIndex: #", Color.Red);
-        lbl_placeTaskIndex = new(ui, new(0, 500-30), "placeTaskIndex: #", Color.Red);
-        lbl_dt = new(ui, new(0, 500-60), "dt: #", Color.Red);
+        lbl_placeCardIndex = new(classicUIManager, new(0, 500), "placeCardIndex: #", Color.Red);
+        lbl_placeTaskIndex = new(classicUIManager, new(0, 500-30), "placeTaskIndex: #", Color.Red);
+        lbl_dt = new(classicUIManager, new(0, 500-60), "dt: #", Color.Red);
 
-        lbl_showingFromIndex = new(ui, new(0, 500-90), "showingFromIndex: #", Color.Red);
-        lbl_showingToIndex = new(ui, new(0, 500-120), "showingToIndex: #", Color.Red);
+        lbl_showingFromIndex = new(classicUIManager, new(0, 500-90), "showingFromIndex: #", Color.Red);
+        lbl_showingToIndex = new(classicUIManager, new(0, 500-120), "showingToIndex: #", Color.Red);
 
         //Randomized cards
         var addRandomizedCards = () => {
@@ -350,8 +351,8 @@ public class TasksProgram : Game
             }
         };
 
-        Button generateRandom = new Button(ui, new Rectangle(500,700,200,50), addRandomizedCards, "Generate random");
-        Button addCard = new Button(ui, new Rectangle(200,700,200,50), AddCard, "Add card");
+        Button generateRandom = new Button(classicUIManager, new Rectangle(500,700,200,50), addRandomizedCards, "Generate random");
+        Button addCard = new Button(classicUIManager, new Rectangle(200,700,200,50), AddCard, "Add card");
 
         addRandomizedCards();
         

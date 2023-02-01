@@ -7,9 +7,9 @@ using static Lib.Utils;
 
 namespace Lib;
 
-public class UI
+public class ClassicUIManager
 {
-    private List<UIElement> elements;
+    private List<ClassicUIElement> elements;
     private bool clicking;
     private Game game;
 
@@ -33,7 +33,7 @@ public class UI
 
     public MouseCursor MouseCursor { get; set; } 
 
-    public UI(Game game)
+    public ClassicUIManager(Game game)
     {
         this.game = game;
         elements = new();
@@ -47,7 +47,7 @@ public class UI
         MouseCursor prevMouseCursor = MouseCursor;
         MouseCursor = MouseCursor.Arrow;
 
-        foreach(UIElement element in elements)
+        foreach(ClassicUIElement element in elements)
             if (element.Layer == CurrentLayer && !element.Locked)
                 element._Update(keys, mouse);
 
@@ -60,11 +60,11 @@ public class UI
     }
     public void DrawElements(SpriteBatch spriteBatch)
     {
-        foreach (UIElement element in elements)
+        foreach (ClassicUIElement element in elements)
             if (element.Layer == CurrentLayer && !element.Hidden)
                 element._Draw(spriteBatch);
     }
-    public UIElement Add(UIElement elem)
+    public ClassicUIElement Add(ClassicUIElement elem)
     {
         elements.Add(elem);
         return elem;

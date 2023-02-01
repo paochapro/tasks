@@ -4,23 +4,23 @@ using MonoGame.Extended;
 
 namespace Lib;
 
-class Container : UIElement
+class Container : ClassicUIElement
 {
-    private List<UIElement> elements = new();
+    private List<ClassicUIElement> elements = new();
     public int ElementOffset { get; set; }
 
-    public Container(UI ui, Rectangle box, int elementOffset) : base(ui)
+    public Container(ClassicUIManager ui, Rectangle box, int elementOffset) : base(ui)
     {
         rect = box;
         ElementOffset = elementOffset;
     }
     
-    public void Add(UIElement element)
+    public void Add(ClassicUIElement element)
     {
         elements.Add(element);
         Rearrange();
     }
-    public void Remove(UIElement element)
+    public void Remove(ClassicUIElement element)
     {
         elements.Remove(element);
         Rearrange();
@@ -28,9 +28,9 @@ class Container : UIElement
 
     private void Rearrange()
     {
-        UIElement? previousElement = null;
+        ClassicUIElement? previousElement = null;
         
-        foreach (UIElement element in elements)
+        foreach (ClassicUIElement element in elements)
         {
             element.rect.X = (previousElement?.rect.Right + ElementOffset ?? rect.X);
             element.rect.Y = rect.Y;
