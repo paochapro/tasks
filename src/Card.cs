@@ -19,7 +19,6 @@ public class Card
 
 public class UICard
 {
-    //Static style vars
     public static readonly Color bodyColor = new(90, 90, 90);
     public static Texture2D plusTexture;
     public static Texture2D colorWheelTexture;
@@ -28,43 +27,38 @@ public class UICard
     public const int bannerHeight = 32; //24;
     public const int cardButtonsWidth = 32;
 
-    //Properties
     public Card Card => card;
     public Rectangle Rectangle => rectangle;
     public bool IsBeingDragged => isBeingDragged;
-    public bool IsBeingRenamed => titleRenameTextbox != null; //isBeingRenamed;
+    public bool IsBeingRenamed => renameTextbox != null; //isBeingRenamed;
     public bool IsQueuedForRemoval => isQueuedForRemoval;
     public UITaskBox? DragTask { get => dragTask; set => dragTask = value; }
 
-    //Fields
-    private Color bannerColor;
-    private string cardTitle;
-    private List<UITaskBox> uiTaskBoxes;
+    Card card;
+    Color bannerColor;
+    string cardTitle;
+    List<UITaskBox> uiTaskBoxes;
+    Rectangle rectangle;
+    UITaskBox? dragTask;
+    TasksProgram program;
+    int placeTaskIndex;
+    bool isBeingDragged;
+    bool isQueuedForRemoval;
+    int cardTitleMaxWidth;
+    int textMarginX;
+    UITextboxCreator renameTbCreator;
+    UITextbox? renameTextbox;
 
-    private Rectangle rectangle;
-    private Card card;
-    private TasksProgram program;
-    private UITaskBox? dragTask;
-    private UITextbox? titleRenameTextbox;
-    private int placeTaskIndex;
-
-    private bool isBeingDragged;
-    private bool isQueuedForRemoval;
-
-    //Style
-    private SpriteFont font;
-
-    private Color colorWheelButtonClr;
-    private Color addTaskButtonClr;
-    private Color bannerTitleColor;
-
-    private readonly Color buttonsDefaultColor;
-    private readonly Color buttonsHoverColor;
-    private readonly Color bannerTitleDefaultColor;
-    private readonly Color bannerTitleHoverColor;
-
-    private int cardTitleMaxWidth;
-    private int textMarginX;
+    SpriteFont font;
+    Color colorWheelButtonClr;
+    Color addTaskButtonClr;
+    Color bannerTitleColor;
+    readonly Color buttonsDefaultColor;
+    readonly Color buttonsHoverColor;
+    readonly Color bannerTitleDefaultColor;
+    readonly Color bannerTitleHoverColor;
+    readonly Color tbBodyColor;
+    readonly Color tbTextColor;
 
     public UICard(TasksProgram program, Card card)
     {
@@ -104,6 +98,10 @@ public class UICard
         colorWheelButtonClr = buttonsDefaultColor;
         addTaskButtonClr = buttonsDefaultColor;
         bannerTitleColor = bannerTitleDefaultColor;
+
+        tbBodyColor = bannerColor.DarkenBy(40);
+        tbTextColor = Color.White;
+        renameTbCreator = new UITextboxCreator(program.Window, cardTitleMaxWidth, 9999, tbBodyColor, tbTextColor, font);
     }
 
     public void Update(float dt)
@@ -127,20 +125,19 @@ public class UICard
             return;
         }
 
-        if(titleRenameTextbox != null)
+        if(renameTextbox != null)
         {
-            titleRenameTextbox.Update(dt);
+            renameTextbox.Update(dt);
 
             if(Input.IsKeyDown(Keys.Enter))
             {
-                cardTitle = titleRenameTextbox.Text;
-                titleRenameTextbox = null;
+                cardTitle = renameTextbox.TextboxText;
+                renameTextbox = null;
             }
 
             if(Input.IsKeyDown(Keys.Escape))
-                titleRenameTextbox = null;
+                renameTextbox = null;
 
-                
             return;
         }
 
@@ -197,11 +194,10 @@ public class UICard
             if(Input.KeyPressed(Keys.F2))
             {
                 Point pos = Utils.CenteredTextPosInRect(bannerRect, font, cardTitle).ToPoint();
-                Color bodyColor = bannerColor.DarkenBy(40);
-                Color textColor = Color.White;
+                renameTextbox = renameTbCreator.CreateUITextbox(pos, cardTitle);
 
-                titleRenameTextbox = new UITextbox(program.Window, pos, cardTitleMaxWidth, 9999, bodyColor, textColor, font, cardTitle);
-                titleRenameTextbox.program = this.program;
+                //debug
+                renameTextbox.program = this.program;
             }
         }
     }
@@ -305,8 +301,8 @@ public class UICard
         spriteBatch.FillRectangle(banner, bannerColor);
 
         //Draw banner title
-        if(titleRenameTextbox != null)
-            titleRenameTextbox.Draw(spriteBatch);
+        if(renameTextbox != null)
+            renameTextbox.Draw(spriteBatch);
         else
         {
             float scale = 1.0f;
