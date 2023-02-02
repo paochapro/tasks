@@ -2,7 +2,7 @@
 
 namespace tasks;
 
-public class UICard : TasksUIElement
+public class UICard : UIElement
 {
     public static readonly Color bodyColor = new(90, 90, 90);
     public static Texture2D plusTexture;
@@ -14,10 +14,9 @@ public class UICard : TasksUIElement
 
     public Card Card => card;
     public Rectangle Rectangle => rectangle;
-    public bool IsBeingDragged => isBeingDragged;
-    public bool IsBeingRenamed => renameTextbox != null;
-    public bool IsQueuedForRemoval => isQueuedForRemoval;
     public UITaskBox? DragTask { get => dragTask; set => dragTask = value; }
+    public ElementState ElementState => elementState;
+    public bool IsQueuedForRemoval => isQueuedForRemoval;
 
     Card card;
     Color bannerColor;
@@ -27,12 +26,12 @@ public class UICard : TasksUIElement
     UITaskBox? dragTask;
     TasksProgram program;
     int placeTaskIndex;
-    bool isBeingDragged;
     bool isQueuedForRemoval;
     int cardTitleMaxWidth;
     int textMarginX;
     UITextboxCreator renameTbCreator;
     UITextbox? renameTextbox;
+    ElementState elementState;
 
     SpriteFont font;
     Color colorWheelButtonClr;
@@ -96,189 +95,22 @@ public class UICard : TasksUIElement
         bannerTitleColor = bannerTitleDefaultColor;
 
         if(DragTask != null)
+            UpdateDraggingTask(dt);
+        else
         {
-            dragTask.Update(dt);
-        }
-
-        //If we are being dragged:
-        //1. Check if user released mouse1 to stop dragging this card
-        //2. Or tries to send it to bin
-        //And do not update anything else
-        if(isBeingDragged)
-        {
-            if(Input.LBReleased())
-                isBeingDragged = false;
-
-            if(program.CardBinRect.Contains(Input.Mouse.Position) && !isBeingDragged)
-                isQueuedForRemoval = true;
-
-            return;
-        }
-
-        if(renameTextbox != null)
-        {
-            renameTextbox.Update(dt);
-
-            if(Input.IsKeyDown(Keys.Enter))
+            switch(elementState)
             {
-                cardTitle = renameTextbox.TextboxText;
-                renameTextbox = null;
-            }
-
-            if(Input.IsKeyDown(Keys.Escape))
-                renameTextbox = null;
-
-            return;
-        }
-
-        UpdateBannerActions(dt);
-        UpdateTaskBoxes(dt);
-    }
-
-    private void UpdateBannerActions(float dt)
-    {
-        Rectangle bannerRect = rectangle with { Height = bannerHeight };
-        Point mousePos = Input.Mouse.Position;
-
-        //Check if user clicked on + sign
-        Rectangle taskButtonRect = bannerRect with { Width = cardButtonsWidth };
-        taskButtonRect.X = bannerRect.Right - taskButtonRect.Width;
-
-        if(taskButtonRect.Contains(mousePos))
-        {
-            addTaskButtonClr = buttonsHoverColor;
-
-            if(Input.LBPressed())
-                AddTask(new UITaskBox(program, "empty", false, this));
-
-            UpdateTaskBoxes(dt);
-            return;
-        }
-
-        //Check if user clicked on color wheel
-        Rectangle colorWheelRect = taskButtonRect;
-        colorWheelRect.X = taskButtonRect.Left - colorWheelRect.Width;
-
-        if(colorWheelRect.Contains(mousePos))
-        {
-            //Popup the color changing window
-            colorWheelButtonClr = buttonsHoverColor;
-
-            if(Input.LBPressed())
-                print("Color wheel button");
-
-            return;
-        }
-
-        //Check if user: 
-        //1. Wants to start dragging this card
-        //2. Wants to delete it
-        //3. Wants to rename it
-        if(bannerRect.Contains(mousePos))
-        {
-            isBeingDragged = Input.LBPressed();
-
-            if(Input.MBPressed())
-                isQueuedForRemoval = true;
-
-            if(Input.KeyPressed(Keys.F2))
-            {
-                Point pos = Utils.CenteredTextPosInRect(bannerRect, font, cardTitle).ToPoint();
-                renameTextbox = renameTbCreator.CreateUITextbox(pos, cardTitle);
-
-                //debug
-                renameTextbox.program = this.program;
-            }
-        }
-    }
-
-    public void UpdateTaskBoxes(float dt)
-    {
-        //Update taskboxes if we arent dragging any task
-        if(dragTask == null)
-        {
-            UpdateTaskBoxesPosition();
-
-            foreach(UITaskBox taskbox in uiTaskBoxes)
-            {
-                taskbox.Update(dt);
-
-                if(taskbox.IsBeingDragged)
-                {
-                    dragTask = taskbox;
-                    uiTaskBoxes.Remove(taskbox);
+                case ElementState.Default:
+                    UpdateDefault(dt);
                     break;
-                }
+                case ElementState.BeingDragged:
+                    UpdateDragging(dt);
+                    break;
+                case ElementState.BeingRenamed:
+                    UpdateRenaming(dt);
+                    break;
             }
         }
-
-        //If a dragged task is in our place, update our tasks positions
-        if(dragTask != null)
-        {
-            //Calculating the index in task list at which we are hovering when dragging a task
-            Rectangle body = rectangle with { 
-                Y = rectangle.Y + bannerHeight,
-                Height = rectangle.Height - bannerHeight 
-            };
-
-            float mouseY = Input.Mouse.Position.ToVector2().Y;
-            int dragPos = (int)mouseY - (body.Y + UITaskBox.taskMargin);
-            int taskCellSpace = UITaskBox.taskHeight + UITaskBox.taskMargin;
-            placeTaskIndex = dragPos / taskCellSpace;
-            placeTaskIndex = clamp(placeTaskIndex, 0, uiTaskBoxes.Count);
-            program.Label_placeTaskIndex.text = "placeTaskIndex: " + placeTaskIndex;
-
-            dragTask.Owner = this;
-            dragTask.Update(dt);
-
-            if(!dragTask.IsBeingDragged)
-            {
-                uiTaskBoxes.Insert(placeTaskIndex, dragTask);
-                dragTask = null;
-            }
-        }
-
-        //Remove tasks that are in removal queue 
-        uiTaskBoxes.RemoveAll(tb => tb.IsQueuedForRemoval);
-        UpdateTaskBoxesPosition();
-    }
-
-    public void UpdatePosition(Point position)
-    {
-        //Update our location
-        rectangle.Location = position;
-        UpdateTaskBoxesPosition();
-        UpdateRectHeight();
-    }
-
-    private void UpdateTaskBoxesPosition()
-    {
-        //Update taskboxes location
-        int totalY = UICard.bannerHeight + UITaskBox.taskMargin;
-        Point taskboxPos = rectangle.Location;
-        taskboxPos.X += UITaskBox.taskMargin;
-        taskboxPos.Y += totalY;
-
-        foreach(UITaskBox taskbox in uiTaskBoxes) 
-        {
-            bool draggedTaskInThisCard = dragTask != null;
-            bool userWantsToInsertHere = taskbox == uiTaskBoxes.ElementAtOrDefault(placeTaskIndex);
-
-            if(draggedTaskInThisCard && userWantsToInsertHere)
-                taskboxPos.Y += totalY;
-
-            taskbox.UpdatePosition(taskboxPos);
-            taskboxPos.Y += totalY;
-        }
-    }
-
-    private void UpdateRectHeight()
-    {
-        //Calculating the rect height
-        int dragging = dragTask != null ? 1 : 0;
-        int rectHeight = bannerHeight + (uiTaskBoxes.Count + dragging) * (UITaskBox.taskHeight + UITaskBox.tasksOffset) + UITaskBox.taskMargin * 2;
-        rectHeight = Math.Max(rectHeight, minRectHeight);
-        rectangle.Height = rectHeight;
     }
 
     public void Draw(SpriteBatch spriteBatch)
@@ -355,5 +187,191 @@ public class UICard : TasksUIElement
         }
     }
 
-    private void AddTask(UITaskBox taskBox) { uiTaskBoxes.Add(taskBox); UpdateRectHeight(); }
+    //State updates
+    void UpdateDragging(float dt)
+    {
+        Vector2 mousePos = Input.Mouse.Position.ToVector2();
+        Vector2 bannerSize = new Vector2(UICard.rectWidth, UICard.bannerHeight);
+        Vector2 dragCardPos = mousePos - bannerSize / 2;
+
+        UpdatePosition(dragCardPos.ToPoint());
+
+        if(Input.LBReleased())
+            elementState = ElementState.Default;
+
+        if(program.CardBinRect.Contains(Input.Mouse.Position) && 
+            elementState != ElementState.BeingDragged)
+        {
+            isQueuedForRemoval = true;
+        }
+    }
+
+    void UpdateRenaming(float dt)
+    {
+        renameTextbox.Update(dt);
+
+        if(Input.IsKeyDown(Keys.Enter))
+        {
+            cardTitle = renameTextbox.TextboxText;
+            renameTextbox = null;
+        }
+
+        if(Input.IsKeyDown(Keys.Escape))
+            renameTextbox = null;
+    }
+
+    void UpdateDefault(float dt)
+    {
+        UpdateBannerActions(dt);
+        UpdateTaskBoxes(dt);
+    }
+
+    void UpdateDraggingTask(float dt)
+    {
+        //Calculating the index in task list at which we are hovering when dragging a task
+        Rectangle body = rectangle with { 
+            Y = rectangle.Y + bannerHeight,
+            Height = rectangle.Height - bannerHeight 
+        };
+
+        float mouseY = Input.Mouse.Position.ToVector2().Y;
+        int dragPos = (int)mouseY - (body.Y + UITaskBox.taskMargin);
+        int taskCellSpace = UITaskBox.taskHeight + UITaskBox.taskMargin;
+        placeTaskIndex = dragPos / taskCellSpace;
+        placeTaskIndex = clamp(placeTaskIndex, 0, uiTaskBoxes.Count);
+        program.Label_placeTaskIndex.text = "placeTaskIndex: " + placeTaskIndex;
+
+        dragTask.Owner = this;
+        dragTask.Update(dt);
+
+        if(!dragTask.IsBeingDragged)
+        {
+            uiTaskBoxes.Insert(placeTaskIndex, dragTask);
+            dragTask = null;
+        }
+
+        UpdateTaskBoxesPosition();
+    }
+
+    //Update certain parts
+    void UpdateBannerActions(float dt)
+    {
+        Rectangle bannerRect = rectangle with { Height = bannerHeight };
+        Point mousePos = Input.Mouse.Position;
+
+        //Check if user clicked on + sign
+        Rectangle taskButtonRect = bannerRect with { Width = cardButtonsWidth };
+        taskButtonRect.X = bannerRect.Right - taskButtonRect.Width;
+
+        if(taskButtonRect.Contains(mousePos))
+        {
+            addTaskButtonClr = buttonsHoverColor;
+
+            if(Input.LBPressed())
+                AddTask(new UITaskBox(program, "empty", false, this));
+
+            UpdateTaskBoxes(dt);
+            return;
+        }
+
+        //Check if user clicked on color wheel
+        Rectangle colorWheelRect = taskButtonRect;
+        colorWheelRect.X = taskButtonRect.Left - colorWheelRect.Width;
+
+        if(colorWheelRect.Contains(mousePos))
+        {
+            //Popup the color changing window
+            colorWheelButtonClr = buttonsHoverColor;
+
+            if(Input.LBPressed())
+                print("Color wheel button");
+
+            return;
+        }
+
+        //Check if user: 
+        //1. Wants to start dragging this card
+        //2. Wants to delete it
+        //3. Wants to rename it
+        if(bannerRect.Contains(mousePos))
+        {
+            if(Input.LBPressed())
+                elementState = ElementState.BeingDragged;
+
+            if(Input.MBPressed())
+                isQueuedForRemoval = true;
+
+            if(Input.KeyPressed(Keys.F2))
+            {
+                Point pos = Utils.CenteredTextPosInRect(bannerRect, font, cardTitle).ToPoint();
+                renameTextbox = renameTbCreator.CreateUITextbox(pos, cardTitle);
+
+                //debug
+                renameTextbox.program = this.program;
+            }
+        }
+    }
+
+    void UpdateTaskBoxes(float dt)
+    {
+        foreach(UITaskBox taskbox in uiTaskBoxes)
+        {
+            taskbox.Update(dt);
+
+            if(taskbox.IsBeingDragged)
+            {
+                dragTask = taskbox;
+                uiTaskBoxes.Remove(taskbox);
+                break;
+            }
+        }
+
+        //Remove tasks that are in removal queue 
+        uiTaskBoxes.RemoveAll(tb => tb.IsQueuedForRemoval);
+        UpdateTaskBoxesPosition();
+    }
+
+    void UpdatePosition(Point position)
+    {
+        //Update our location
+        rectangle.Location = position;
+        UpdateTaskBoxesPosition();
+        UpdateRectHeight();
+    }
+
+    void UpdateTaskBoxesPosition()
+    {
+        //Update taskboxes location
+        int totalY = UICard.bannerHeight + UITaskBox.taskMargin;
+        Point taskboxPos = rectangle.Location;
+        taskboxPos.X += UITaskBox.taskMargin;
+        taskboxPos.Y += totalY;
+
+        foreach(UITaskBox taskbox in uiTaskBoxes) 
+        {
+            bool draggedTaskInThisCard = dragTask != null;
+            bool userWantsToInsertHere = taskbox == uiTaskBoxes.ElementAtOrDefault(placeTaskIndex);
+
+            if(draggedTaskInThisCard && userWantsToInsertHere)
+                taskboxPos.Y += totalY;
+
+            taskbox.UpdatePosition(taskboxPos);
+            taskboxPos.Y += totalY;
+        }
+    }
+
+    void UpdateRectHeight()
+    {
+        //Calculating the rect height
+        int dragging = dragTask != null ? 1 : 0;
+        int rectHeight = bannerHeight + (uiTaskBoxes.Count + dragging) * (UITaskBox.taskHeight + UITaskBox.tasksOffset) + UITaskBox.taskMargin * 2;
+        rectHeight = Math.Max(rectHeight, minRectHeight);
+        rectangle.Height = rectHeight;
+    }
+
+    void AddTask(UITaskBox taskBox)
+    { 
+        uiTaskBoxes.Add(taskBox); 
+        UpdateRectHeight(); 
+    }
 }

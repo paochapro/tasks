@@ -2,7 +2,7 @@
 
 namespace tasks;
 
-public class UITaskBox : TasksUIElement
+public class UITaskBox : UIElement
 {
     public static readonly Color hoverColorAddition = new Color(10, 10, 10);
     public static readonly Color bodyColor = new(70, 70, 70);
@@ -18,8 +18,10 @@ public class UITaskBox : TasksUIElement
     public bool IsQueuedForRemoval => isQueuedForRemoval;
     public bool IsBeingDragged => isBeingDragged;
     public bool IsBeingRenamed => renameTextbox != null;
+    public ElementState ElementState => elementState;
     public UICard Owner { get => owner; set => owner = value; }
     
+
     UICard owner;
     Rectangle rectangle;
     SpriteFont font;
@@ -30,6 +32,7 @@ public class UITaskBox : TasksUIElement
     bool isBeingDragged;
     UITextbox? renameTextbox;
     UITextboxCreator tbCreator;
+    ElementState elementState;
 
     readonly Color tbBodyColor;
     readonly Color tbTextColor;

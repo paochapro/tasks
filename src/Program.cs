@@ -2,68 +2,39 @@
 
 namespace tasks;
 
-public class TasksProgram : Game
+public class TasksProgram : BaseGame
 {
-    //Graphics
-    public GraphicsDeviceManager Graphics => graphics;
-    public SpriteBatch SpriteBatch => spriteBatch;
-    private GraphicsDeviceManager graphics;
-    private SpriteBatch spriteBatch;
-
-    //Other stuff
-    private Assets assets;
-    private ClassicUIManager classicUIManager;
-    private SpriteFont textFont;
-    private readonly Color clearColor = new(100,100,100,255);
-
-    public SpriteFont TextFont => textFont;
-    public Assets Assets => assets;
-
-    //Window settings
-    private Point screen;
-    public Point Screen
-    { 
-        get => screen; 
-        set {
-            screen = value;
-            graphics.PreferredBackBufferWidth = value.X;
-            graphics.PreferredBackBufferHeight = value.Y;
-            graphics.ApplyChanges();
-        }
-    }
-
-    private const string gameName = "Tasks";
-    
-    //Main fields
-    private List<UICard> uiCards = new();
-    private UICard? dragCard;
-    private UITaskBox? dragTask;
-    TasksUIElement? renamingElement;
-
-    private int placeCardIndex;
-
-    //Other stuff
-    private const int cardStartOffset = 16;
-    private const int bottomBarHeight = 200;
-    private const int cardBinWidth = 300;
-
-    private Rectangle cardBinRect;
-    private Rectangle bottomBarRect;
     public Rectangle CardBinRect => cardBinRect;
-
-    private Label lbl_placeCardIndex;
-    private Label lbl_placeTaskIndex;
-    private Label lbl_dt;
-
     public Label lbl_showingFromIndex;
     public Label lbl_showingToIndex;
-    
     public Label Label_placeTaskIndex => lbl_placeTaskIndex;
+    public SpriteFont TextFont => textFont;
 
-    private List<Color> listOfColors;
-    private List<Color> currentListOfColors;
-    private bool debugMode;
-    public bool DebugMode => debugMode;
+    ClassicUIManager classicUIManager;
+    SpriteFont textFont;
+
+    List<UICard> uiCards = new();
+
+    UIElement? renamingElement;
+    UICard? draggedCard;
+    UITaskBox? draggedTask;
+
+    int placeCardIndex;
+
+    //Other stuff
+    const int cardStartOffset = 16;
+    const int bottomBarHeight = 200;
+    const int cardBinWidth = 300;
+
+    Rectangle cardBinRect;
+    Rectangle bottomBarRect;
+
+    Label lbl_placeCardIndex;
+    Label lbl_placeTaskIndex;
+    Label lbl_dt;
+
+    List<Color> listOfColors;
+    List<Color> currentListOfColors;
 
     protected override void Update(GameTime gameTime)
     {
@@ -74,7 +45,7 @@ public class TasksProgram : Game
         //If we arent dragging a card (in this case dragging a task instead) then maxIndex should count-1
         //If we are dragging a card then we should add an additional slot to maxIndex
         int maxIndex = uiCards.Count - 1;
-        maxIndex += dragCard != null ? 1 : 0;
+        maxIndex += draggedCard != null ? 1 : 0;
 
         //Calculating the index in card list at which we are hovering when dragging a card or a task
         float mouseX = Input.Mouse.Position.ToVector2().X;
@@ -85,31 +56,12 @@ public class TasksProgram : Game
         
         //Update cards
         if(renamingElement != null)
-        {
-            renamingElement.Update(dt);
-
-            if(renamingElement.IsBeingRenamed == false)
-                renamingElement = null;
-        }
+            UpdateRenaming(dt);
         else
-        {
-            //Switch debug mode
-            if(Input.KeyPressed(Keys.OemTilde))
-                debugMode = !debugMode;
-
-            if(Input.IsKeyDown(Keys.LeftControl) && Input.KeyPressed(Keys.A))
-                AddCard();
-
-            classicUIManager.UpdateElements(Input.Keys, Input.Mouse);
-
-            NoDraggingCardUpdate(dt);
-            DraggingCardUpdate(dt);
-        }
+            UpdateDefault(dt);
 
         //Remove all cards in removal queue
         uiCards.RemoveAll(c => c.IsQueuedForRemoval);
-
-        UpdateCardPositions();
 
         //Debug info (red text)
         lbl_placeCardIndex.text = "placeCardIndex: " + placeCardIndex;
@@ -134,129 +86,148 @@ public class TasksProgram : Game
         base.Update(gameTime);
     }
 
-    private void NoDraggingCardUpdate(float dt)
+    void UpdateDefault(float dt)
     {
-        dragTask = uiCards.Find(c => c.DragTask != null)?.DragTask;
+        if(Input.KeyPressed(Keys.OemTilde))
+            debugMode = !debugMode;
 
-        //If we are not dragging - update all cards
-        if(dragCard == null)
+        if(Input.IsKeyDown(Keys.LeftControl) && Input.KeyPressed(Keys.A))
+            AddCard();
+
+        classicUIManager.UpdateElements(Input.Keys, Input.Mouse);
+
+        if(draggedTask != null)
+            UpdateDraggingTask(dt);
+        else
         {
-            foreach(UICard card in uiCards) 
+            if(draggedCard != null)
+                UpdateDraggingCard(dt);
+            else
+                UpdateCards(dt);
+        }
+
+    }
+
+    void UpdateRenaming(float dt)
+    {
+        renamingElement.Update(dt);
+            
+        if(renamingElement.ElementState != ElementState.BeingRenamed)
+            renamingElement = null;
+    }
+
+    void UpdateCards(float dt)
+    {
+        foreach(UICard card in uiCards)
+        {
+            card.Update(dt);
+            
+            //Check if card state have changed
+            if(card.DragTask != null)
             {
-                //If we arent dragging any tasks update card
-                if(dragTask == null)
-                {
-                    card.Update(dt);
+                draggedTask = card.DragTask;
+                break;
+            }
 
-                    if(card.IsBeingRenamed)
-                    {
-                        renamingElement = card;
-                        break;    
-                    }
+            if(card.ElementState == ElementState.BeingRenamed)
+            {
+                renamingElement = card;
+                break;    
+            }
 
-                    //Check if being dragged
-                    if(card.IsBeingDragged)
-                    {
-                        dragCard = card;
-                        uiCards.Remove(card);
-                        break;
-                    }
-
-                    //Check if we are dragging some task
-                    dragTask = card.DragTask;
-                }
-                
-                //If we are dragging a task, tell the card under which we are dragging our task, that its in their place 
-                if(dragTask != null)
-                {
-                    card.DragTask = null;
-
-                    if(card == uiCards.ElementAtOrDefault(placeCardIndex))
-                    {
-                        card.DragTask = dragTask;
-                        card.UpdateTaskBoxes(dt);
-                    }
-                }
+            if(card.ElementState == ElementState.BeingDragged)
+            {
+                draggedCard = card;
+                uiCards.Remove(card);
+                break;
             }
         }
     }
 
-    private void DraggingCardUpdate(float dt)
+    void UpdateDraggingCard(float dt)
     {
         Point cardPos = new Point(cardStartOffset);
 
         //If we are dragging, update only drag card
-        if(dragCard != null)
+        if(draggedCard != null)
         {
-            Vector2 mousePos = Input.Mouse.Position.ToVector2();
+            draggedCard.Update(dt);
 
-            //Update drag card position
-            Vector2 bannerSize = new Vector2(UICard.rectWidth, UICard.bannerHeight);
-            Vector2 dragCardPos = mousePos - bannerSize / 2;
-
-            dragCard.UpdatePosition(dragCardPos.ToPoint());
-            dragCard.Update(dt); //should remade this
-
-            if(!dragCard.IsBeingDragged)
+            if(draggedCard.ElementState != ElementState.BeingDragged)
             {
                 //Insert drag card at place index
-                uiCards.Insert(placeCardIndex, dragCard);
+                uiCards.Insert(placeCardIndex, draggedCard);
 
                 //Not dragging card anymore
-                dragCard = null;
+                draggedCard = null;
+            }
+        }
+    }
+    
+    void UpdateDraggingTask(float dt)
+    {
+        //If we are dragging a task, tell the card under which we are dragging our task, that its in their place
+        foreach(UICard card in uiCards)
+        {
+            card.DragTask = null;
+
+            if(card == uiCards.ElementAtOrDefault(placeCardIndex))
+            {
+                card.DragTask = draggedTask;
+                card.Update(dt);
             }
         }
     }
 
-    private void AddCard()
+    void AddCard()
     {
-        Card deafultCard = new Card("New", currentListOfColors.FirstOrDefault());
+        Card defaultCard = new Card("New", currentListOfColors.FirstOrDefault());
         currentListOfColors.RemoveAt(0);
 
         if(currentListOfColors.Count == 0)
             currentListOfColors = listOfColors.ToList();
 
-        UICard defaultUICard = new UICard(this, deafultCard);
+        UICard defaultUICard = new UICard(this, defaultCard);
         uiCards.Add(defaultUICard);
     }
 
-    private void UpdateCardPositions()
-    {
-        Point cardPos = new Point(cardStartOffset);
+    // void UpdateCardPositions()
+    // {
+    //     Point cardPos = new Point(cardStartOffset);
 
-        if(dragCard != null)
-        {
-            foreach(UICard card in uiCards)
-            {
-                if(card == uiCards.ElementAtOrDefault(placeCardIndex))
-                    cardPos.X += UICard.rectWidth + 16;
+    //     if(dragCard != null)
+    //     {
+    //         foreach(UICard card in uiCards)
+    //         {
+    //             if(card == uiCards.ElementAtOrDefault(placeCardIndex))
+    //                 cardPos.X += UICard.rectWidth + 16;
 
-                card.UpdatePosition(cardPos);
-                cardPos.X += UICard.rectWidth + 16;
-            }
-        }
-        else
-        {
-            foreach(UICard card in uiCards)
-            {
-                card.UpdatePosition(cardPos);
-                cardPos.X += UICard.rectWidth + 16;
-            }
-        }
-    }
+    //             card.UpdatePosition(cardPos);
+    //             cardPos.X += UICard.rectWidth + 16;
+    //         }
+    //     }
+    //     else
+    //     {
+    //         foreach(UICard card in uiCards)
+    //         {
+    //             card.UpdatePosition(cardPos);
+    //             cardPos.X += UICard.rectWidth + 16;
+    //         }
+    //     }
+    // }
 
     protected override void Draw(GameTime gameTime)
     {
-        graphics.GraphicsDevice.Clear(clearColor);
+        Graphics.GraphicsDevice.Clear(clearColor);
         
-        spriteBatch.Begin();
+        SpriteBatch.Begin();
         {
             //Drawing bottom bar
-            spriteBatch.FillRectangle(bottomBarRect, clearColor.DarkenBy(20));
-            spriteBatch.FillRectangle(cardBinRect, clearColor.DarkenBy(40));
+            SpriteBatch.FillRectangle(bottomBarRect, clearColor.DarkenBy(20));
+            SpriteBatch.FillRectangle(cardBinRect, clearColor.DarkenBy(40));
 
             //Drawing place rect
-            if(dragCard != null)
+            if(draggedCard != null)
             {
                 //Calculating place rect pos
                 Point placePos = new Point(cardStartOffset);
@@ -264,30 +235,27 @@ public class TasksProgram : Game
                 placePos.X += placeCardIndex * (UICard.rectWidth + 16);
 
                 //Place rect
-                Rectangle placeRect = new(placePos, new(UICard.rectWidth, dragCard.Rectangle.Height));
+                Rectangle placeRect = new(placePos, new(UICard.rectWidth, draggedCard.Rectangle.Height));
 
-                spriteBatch.DrawRectangle(placeRect, Color.White, 2);
+                SpriteBatch.DrawRectangle(placeRect, Color.White, 2);
             }
 
             //Drawing cards
             foreach(UICard card in uiCards)
-                card.Draw(spriteBatch);
+                card.Draw(SpriteBatch);
 
             //Drawing lib classicUIManager
-            classicUIManager.DrawElements(spriteBatch);
+            classicUIManager.DrawElements(SpriteBatch);
 
-            dragCard?.Draw(spriteBatch);
-            dragTask?.Draw(spriteBatch);
+            draggedCard?.Draw(SpriteBatch);
+            draggedTask?.Draw(SpriteBatch);
         }
-        spriteBatch.End();
+        SpriteBatch.End();
     }
 
     protected override void LoadContent()
     {
-        spriteBatch = new(GraphicsDevice);
-        assets = new Assets(Content);
-        classicUIManager = new ClassicUIManager(this);
-        textFont = assets.GetDefault<SpriteFont>();
+        textFont = Assets.GetDefault<SpriteFont>();
         UICard.plusTexture = Content.Load<Texture2D>("plus");
         UICard.colorWheelTexture = Content.Load<Texture2D>("color_wheel");
 
@@ -362,7 +330,7 @@ public class TasksProgram : Game
     protected override void Initialize()
     {
         Screen = new(1400,800);
-        Window.Title = gameName;
+        Window.Title = GameName;
         Window.AllowUserResizing = false;
         IsMouseVisible = true;
         base.Initialize();
@@ -370,8 +338,7 @@ public class TasksProgram : Game
     
     public TasksProgram()
     {
-        graphics = new GraphicsDeviceManager(this);
-        Content.RootDirectory = "Content";
+        classicUIManager = new ClassicUIManager(this);
     }
 }
 

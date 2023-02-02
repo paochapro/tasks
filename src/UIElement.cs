@@ -1,9 +1,9 @@
 namespace tasks;
 
-interface TasksUIElement
-{
-    bool IsBeingDragged { get; }
-    bool IsBeingRenamed { get; }
+public enum ElementState { Default, BeingDragged, BeingRenamed }
 
-    public void Update(float dt);
+public interface UIElement
+{
+    ElementState ElementState { get; }
+    void Update(float dt);
 }
