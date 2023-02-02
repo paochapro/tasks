@@ -6,7 +6,6 @@ public abstract class BaseGame : Game
     public SpriteBatch SpriteBatch => spriteBatch;
     public Assets Assets => assets;
     public bool DebugMode => debugMode;
-    public const string GameName = "Tasks";
     public readonly Color clearColor = new(100,100,100,255);
 
     protected bool debugMode;
@@ -26,15 +25,42 @@ public abstract class BaseGame : Game
     Assets assets;
     Point _screen;
 
-    public BaseGame()
+    public BaseGame() : base()
     {
         graphics = new GraphicsDeviceManager(this);
+        Content.RootDirectory = "Content";
     }
 
-    protected override void LoadContent()
+    protected sealed override void Update(GameTime gameTime)
     {
-        Content.RootDirectory = "Content";
+        float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
+        Process(dt);
+        Input.CycleEnd();
+        base.Update(gameTime);
+    }
+
+    protected sealed override void Draw(GameTime gameTime) => Paint(SpriteBatch);
+
+    protected sealed override void LoadContent()
+    {
         spriteBatch = new SpriteBatch(graphics.GraphicsDevice);
         assets = new Assets(Content);
+        LoadAssets();
+        base.LoadContent();
     }
+
+    protected sealed override void Initialize()
+    {
+        Screen = new(1400,800);
+        Window.AllowUserResizing = false;
+        IsMouseVisible = true;
+        Init();
+        base.Initialize();
+    }
+
+    //Yes, I have to use synonyms and stuff to make this work :P
+    protected abstract void Process(float dt);
+    protected abstract void Paint(SpriteBatch spriteBatch);
+    protected abstract void LoadAssets();
+    protected abstract void Init();
 }

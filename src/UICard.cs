@@ -113,6 +113,14 @@ public class UICard : UIElement
         }
     }
 
+    public void UpdatePosition(Point pos)
+    {
+        //Update our location
+        rectangle.Location = pos;
+        UpdateTaskBoxesPosition();
+        UpdateRectHeight();
+    }
+
     public void Draw(SpriteBatch spriteBatch)
     {
         //Main body
@@ -329,14 +337,6 @@ public class UICard : UIElement
         //Remove tasks that are in removal queue 
         uiTaskBoxes.RemoveAll(tb => tb.IsQueuedForRemoval);
         UpdateTaskBoxesPosition();
-    }
-
-    void UpdatePosition(Point position)
-    {
-        //Update our location
-        rectangle.Location = position;
-        UpdateTaskBoxesPosition();
-        UpdateRectHeight();
     }
 
     void UpdateTaskBoxesPosition()

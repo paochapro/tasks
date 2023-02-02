@@ -36,10 +36,8 @@ public class TasksProgram : BaseGame
     List<Color> listOfColors;
     List<Color> currentListOfColors;
 
-    protected override void Update(GameTime gameTime)
+    protected override void Process(float dt)
     {
-        float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
-
         placeCardIndex = 0;
         
         //If we arent dragging a card (in this case dragging a task instead) then maxIndex should count-1
@@ -81,9 +79,6 @@ public class TasksProgram : BaseGame
             lbl_showingFromIndex.Hidden = true;
             lbl_showingToIndex.Hidden = true;
         }
-
-        Input.CycleEnd();
-        base.Update(gameTime);
     }
 
     void UpdateDefault(float dt)
@@ -118,8 +113,11 @@ public class TasksProgram : BaseGame
 
     void UpdateCards(float dt)
     {
+        Point cardPos = new Point(cardStartOffset);
+
         foreach(UICard card in uiCards)
         {
+            card.UpdatePosition(cardPos);
             card.Update(dt);
             
             //Check if card state have changed
@@ -141,6 +139,8 @@ public class TasksProgram : BaseGame
                 uiCards.Remove(card);
                 break;
             }
+
+            cardPos.X += UICard.rectWidth + 16;
         }
     }
 
@@ -148,19 +148,26 @@ public class TasksProgram : BaseGame
     {
         Point cardPos = new Point(cardStartOffset);
 
-        //If we are dragging, update only drag card
-        if(draggedCard != null)
+        //Update other cards positions
+        foreach(UICard card in uiCards)
         {
-            draggedCard.Update(dt);
+            if(card == uiCards.ElementAtOrDefault(placeCardIndex))
+                cardPos.X += UICard.rectWidth + 16;
 
-            if(draggedCard.ElementState != ElementState.BeingDragged)
-            {
-                //Insert drag card at place index
-                uiCards.Insert(placeCardIndex, draggedCard);
+            card.UpdatePosition(cardPos);
 
-                //Not dragging card anymore
-                draggedCard = null;
-            }
+            cardPos.X += UICard.rectWidth + 16;
+        }
+
+        draggedCard.Update(dt);
+
+        if(draggedCard.ElementState != ElementState.BeingDragged)
+        {
+            //Insert drag card at place index
+            uiCards.Insert(placeCardIndex, draggedCard);
+
+            //Not dragging card anymore
+            draggedCard = null;
         }
     }
     
@@ -191,32 +198,7 @@ public class TasksProgram : BaseGame
         uiCards.Add(defaultUICard);
     }
 
-    // void UpdateCardPositions()
-    // {
-    //     Point cardPos = new Point(cardStartOffset);
-
-    //     if(dragCard != null)
-    //     {
-    //         foreach(UICard card in uiCards)
-    //         {
-    //             if(card == uiCards.ElementAtOrDefault(placeCardIndex))
-    //                 cardPos.X += UICard.rectWidth + 16;
-
-    //             card.UpdatePosition(cardPos);
-    //             cardPos.X += UICard.rectWidth + 16;
-    //         }
-    //     }
-    //     else
-    //     {
-    //         foreach(UICard card in uiCards)
-    //         {
-    //             card.UpdatePosition(cardPos);
-    //             cardPos.X += UICard.rectWidth + 16;
-    //         }
-    //     }
-    // }
-
-    protected override void Draw(GameTime gameTime)
+    protected override void Paint(SpriteBatch spriteBatch)
     {
         Graphics.GraphicsDevice.Clear(clearColor);
         
@@ -253,9 +235,10 @@ public class TasksProgram : BaseGame
         SpriteBatch.End();
     }
 
-    protected override void LoadContent()
+    protected override void LoadAssets()
     {
         textFont = Assets.GetDefault<SpriteFont>();
+        classicUIManager = new ClassicUIManager(this);
         UICard.plusTexture = Content.Load<Texture2D>("plus");
         UICard.colorWheelTexture = Content.Load<Texture2D>("color_wheel");
 
@@ -323,23 +306,14 @@ public class TasksProgram : BaseGame
         Button addCard = new Button(classicUIManager, new Rectangle(200,700,200,50), AddCard, "Add card");
 
         addRandomizedCards();
-        
-        base.LoadContent();
     }
 
-    protected override void Initialize()
+    protected override void Init() 
     {
-        Screen = new(1400,800);
-        Window.Title = GameName;
-        Window.AllowUserResizing = false;
-        IsMouseVisible = true;
-        base.Initialize();
+        Window.Title = "Tasks";
     }
     
-    public TasksProgram()
-    {
-        classicUIManager = new ClassicUIManager(this);
-    }
+    public TasksProgram() {}
 }
 
 class Program {
