@@ -51,7 +51,7 @@ public class TasksProgram : BaseGame
         int cardCellSpace = UICard.rectWidth + 16;
         placeCardIndex = dragPos / cardCellSpace;
         placeCardIndex = clamp(placeCardIndex, 0, maxIndex);
-        
+
         //Update cards
         if(renamingElement != null)
             UpdateRenaming(dt);
@@ -60,6 +60,8 @@ public class TasksProgram : BaseGame
 
         //Remove all cards in removal queue
         uiCards.RemoveAll(c => c.IsQueuedForRemoval);
+        
+        UpdateCardsPositions();
 
         //Debug info (red text)
         lbl_placeCardIndex.text = "placeCardIndex: " + placeCardIndex;
@@ -113,51 +115,35 @@ public class TasksProgram : BaseGame
 
     void UpdateCards(float dt)
     {
-        Point cardPos = new Point(cardStartOffset);
-
         foreach(UICard card in uiCards)
         {
-            card.UpdatePosition(cardPos);
             card.Update(dt);
             
             //Check if card state have changed
             if(card.DragTask != null)
             {
                 draggedTask = card.DragTask;
-                break;
+                return;
             }
 
             if(card.ElementState == ElementState.BeingRenamed)
             {
                 renamingElement = card;
-                break;    
+                return;
             }
 
             if(card.ElementState == ElementState.BeingDragged)
             {
                 draggedCard = card;
                 uiCards.Remove(card);
-                break;
+                return;
             }
-
-            cardPos.X += UICard.rectWidth + 16;
         }
     }
 
     void UpdateDraggingCard(float dt)
     {
         Point cardPos = new Point(cardStartOffset);
-
-        //Update other cards positions
-        foreach(UICard card in uiCards)
-        {
-            if(card == uiCards.ElementAtOrDefault(placeCardIndex))
-                cardPos.X += UICard.rectWidth + 16;
-
-            card.UpdatePosition(cardPos);
-
-            cardPos.X += UICard.rectWidth + 16;
-        }
 
         draggedCard.Update(dt);
 
@@ -182,6 +168,34 @@ public class TasksProgram : BaseGame
             {
                 card.DragTask = draggedTask;
                 card.Update(dt);
+
+                if(card.DragTask == null)
+                    draggedTask = null;
+            }
+        }
+    }
+
+    void UpdateCardsPositions()
+    {
+        Point cardPos = new Point(cardStartOffset);
+
+        if(draggedCard != null)
+        {
+            foreach(UICard card in uiCards)
+            {
+                if(card == uiCards.ElementAtOrDefault(placeCardIndex))
+                    cardPos.X += UICard.rectWidth + 16;
+
+                card.UpdatePosition(cardPos);
+                cardPos.X += UICard.rectWidth + 16;
+            }
+        }
+        else
+        {
+            foreach(UICard card in uiCards)
+            {
+                card.UpdatePosition(cardPos);
+                cardPos.X += UICard.rectWidth + 16;
             }
         }
     }
