@@ -245,3 +245,13 @@ static class TextureExtensions
         return texture.SubtractColor(new Color(value,value,value));
     }
 }
+
+static class IEnumerableExtensions
+{
+    public static IEnumerable<T> Swap<T>(this IEnumerable<T> enumerable, T obj1, T obj2) where T: notnull
+    {
+        IEnumerable<T> result = Enumerable.Empty<T>();
+        result = enumerable.Select(x => x.Equals(obj1) ? obj2 : x.Equals(obj2) ? obj1 : x);
+        return result;
+    }
+}

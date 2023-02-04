@@ -5,8 +5,8 @@ namespace tasks;
 public class UICard : UIElement
 {
     public static readonly Color bodyColor = new(90, 90, 90);
-    public static Texture2D plusTexture;
-    public static Texture2D colorWheelTexture;
+    //public static Texture2D plusTexture;
+    //public static Texture2D colorWheelTexture;
     public const int minRectHeight = 64;
     public const int rectWidth = 256;
     public const int bannerHeight = 32; //24;
@@ -15,8 +15,11 @@ public class UICard : UIElement
     public Card Card => card;
     public Rectangle Rectangle => rectangle;
     public UITaskBox? DragTask { get => dragTask; set => dragTask = value; }
+    public UITaskBox? RenamingTask => uiTaskBoxes.Find(tb => tb.IsBeingRenamed);
+    public UITaskBox? ModifyingTask => uiTaskBoxes.Find(tb => tb.ElementState != ElementState.Default);
     public ElementState ElementState => elementState;
     public bool IsQueuedForRemoval => isQueuedForRemoval;
+    public bool IsModifyingAnything => ElementState != ElementState.Default || DragTask != null || RenamingTask != null;
 
     Card card;
     Color bannerColor;
@@ -30,13 +33,23 @@ public class UICard : UIElement
     int cardTitleMaxWidth;
     int textMarginX;
     UITextboxCreator renameTbCreator;
-    UITextbox? renameTextbox;
     ElementState elementState;
+
+    UITextbox? _renameTextbox;
+    UITextbox? renameTextbox {
+        get => _renameTextbox;
+        set {
+            _renameTextbox = value;
+            elementState = _renameTextbox == null ? ElementState.Default : ElementState.BeingRenamed;
+        }
+    }
 
     SpriteFont font;
     Color colorWheelButtonClr;
     Color addTaskButtonClr;
     Color bannerTitleColor;
+    Texture2D plusTexture;
+    Texture2D colorWheelTexture;
     readonly Color buttonsDefaultColor;
     readonly Color buttonsHoverColor;
     readonly Color bannerTitleDefaultColor;
@@ -53,6 +66,9 @@ public class UICard : UIElement
         this.card = card;
         this.program = program;
         this.font = program.TextFont;
+
+        plusTexture = program.Content.Load<Texture2D>("plus");
+        colorWheelTexture = program.Content.Load<Texture2D>("color_wheel");
 
         Rectangle absoluteBanner = rectangle with { Location = Point.Zero, Height = bannerHeight };
         int textY = (int)Utils.CenteredTextPosInRect(absoluteBanner, font, "A").Y;
@@ -225,7 +241,9 @@ public class UICard : UIElement
         }
 
         if(Input.IsKeyDown(Keys.Escape))
+        {
             renameTextbox = null;
+        }
     }
 
     void UpdateDefault(float dt)
@@ -325,6 +343,9 @@ public class UICard : UIElement
         foreach(UITaskBox taskbox in uiTaskBoxes)
         {
             taskbox.Update(dt);
+
+            if(taskbox.IsBeingRenamed)
+                return;
 
             if(taskbox.IsBeingDragged)
             {

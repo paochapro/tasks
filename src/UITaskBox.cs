@@ -30,9 +30,17 @@ public class UITaskBox : UIElement
     string description;
     bool isQueuedForRemoval;
     bool isBeingDragged;
-    UITextbox? renameTextbox;
     UITextboxCreator tbCreator;
     ElementState elementState;
+
+    UITextbox? _renameTextbox;
+    UITextbox? renameTextbox {
+        get => _renameTextbox;
+        set {
+            _renameTextbox = value;
+            elementState = _renameTextbox == null ? ElementState.Default : ElementState.BeingRenamed;
+        }
+    }
 
     readonly Color tbBodyColor;
     readonly Color tbTextColor;
