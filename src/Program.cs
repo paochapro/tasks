@@ -49,7 +49,7 @@ public class TasksProgram : BaseGame
         UICard? modifiedCard = uiCards.Find(card => card.ElementState != ElementState.Default);
 
         if(modifiedCard != null)
-        {
+        {   
             if(modifiedCard.ElementState == ElementState.BeingRenamed)
                 UpdateRenaming(modifiedCard, dt);
 
@@ -57,18 +57,16 @@ public class TasksProgram : BaseGame
                 UpdateDraggingCard(modifiedCard, dt);
         }
 
-        UITaskBox? modifiedTask = uiCards.Find(card => card.ModifyingTask != null)?.ModifyingTask;
+        UITaskBox? renamingTask = uiCards.Find(card => card.RenamingTask != null)?.RenamingTask;
+        UITaskBox? draggedTask = uiCards.Find(card => card.DragTask != null)?.DragTask;
 
-        if(modifiedTask != null)
-        {
-            if(modifiedTask.ElementState == ElementState.BeingRenamed)
-                UpdateRenaming(modifiedTask, dt);
+        if(renamingTask != null)
+            UpdateRenaming(renamingTask, dt);
 
-            if(modifiedTask.ElementState == ElementState.BeingDragged)
-                UpdateDraggingTask(modifiedTask, dt);
-        }
+        if(draggedTask != null)
+            UpdateDraggingTask(draggedTask, dt);
 
-        if(modifiedCard == null && modifiedTask == null)
+        if(modifiedCard == null && renamingTask == null && draggedTask == null)
             UpdateDefault(dt);
         
         //Remove all cards in removal queue
@@ -235,7 +233,7 @@ public class TasksProgram : BaseGame
                 draggedCard.Draw(spriteBatch);
             }
 
-            UITaskBox? draggedTask = uiCards.Find(card => card.ModifyingTask != null)?.ModifyingTask;
+            UITaskBox? draggedTask = uiCards.Find(card => card.DragTask != null)?.DragTask;
 
             if(draggedTask != null)
                 draggedTask.Draw(SpriteBatch);

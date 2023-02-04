@@ -16,12 +16,11 @@ public class UITaskBox : UIElement
     public const int tasksOffset = 4;
 
     public bool IsQueuedForRemoval => isQueuedForRemoval;
-    public bool IsBeingDragged => isBeingDragged;
-    public bool IsBeingRenamed => renameTextbox != null;
+    //public bool IsBeingDragged => elementState == ElementState.BeingDragged;
+    //public bool IsBeingRenamed => renameTextbox != null;
     public ElementState ElementState => elementState;
     public UICard Owner { get => owner; set => owner = value; }
     
-
     UICard owner;
     Rectangle rectangle;
     SpriteFont font;
@@ -29,7 +28,6 @@ public class UITaskBox : UIElement
     bool hover;
     string description;
     bool isQueuedForRemoval;
-    bool isBeingDragged;
     UITextboxCreator tbCreator;
     ElementState elementState;
 
@@ -41,7 +39,7 @@ public class UITaskBox : UIElement
             elementState = _renameTextbox == null ? ElementState.Default : ElementState.BeingRenamed;
         }
     }
-
+    
     readonly Color tbBodyColor;
     readonly Color tbTextColor;
 
@@ -72,16 +70,17 @@ public class UITaskBox : UIElement
     
     public void Update(float dt)
     {
-        if(isBeingDragged)
+        if(elementState == ElementState.BeingDragged)
         {
             Vector2 mousePos = Input.Mouse.Position.ToVector2();
             Vector2 taskSize = new(taskWidth, taskHeight);
             Vector2 dragTaskPos = mousePos - taskSize / 2;
             UpdatePosition(dragTaskPos.ToPoint());
 
-            isBeingDragged = !Input.RBReleased();
-            hover = false;
+            if(Input.RBReleased())
+                elementState = ElementState.Default;
 
+            hover = false;
             return;
         }
 
@@ -119,7 +118,7 @@ public class UITaskBox : UIElement
 
         if(Input.RBPressed())
         {
-            isBeingDragged = true;
+            elementState = ElementState.BeingDragged;
             return;
         }
 

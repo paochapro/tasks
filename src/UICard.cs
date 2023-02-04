@@ -15,7 +15,7 @@ public class UICard : UIElement
     public Card Card => card;
     public Rectangle Rectangle => rectangle;
     public UITaskBox? DragTask { get => dragTask; set => dragTask = value; }
-    public UITaskBox? RenamingTask => uiTaskBoxes.Find(tb => tb.IsBeingRenamed);
+    public UITaskBox? RenamingTask => uiTaskBoxes.Find(tb => tb.ElementState == ElementState.BeingRenamed);
     public UITaskBox? ModifyingTask => uiTaskBoxes.Find(tb => tb.ElementState != ElementState.Default);
     public ElementState ElementState => elementState;
     public bool IsQueuedForRemoval => isQueuedForRemoval;
@@ -260,18 +260,20 @@ public class UICard : UIElement
             Height = rectangle.Height - bannerHeight 
         };
 
+        int maxIndex = uiTaskBoxes.Count;
         float mouseY = Input.Mouse.Position.ToVector2().Y;
         int dragPos = (int)mouseY - (body.Y + UITaskBox.taskMargin);
         int taskCellSpace = UITaskBox.taskHeight + UITaskBox.taskMargin;
         placeTaskIndex = dragPos / taskCellSpace;
-        placeTaskIndex = clamp(placeTaskIndex, 0, uiTaskBoxes.Count);
+        placeTaskIndex = clamp(placeTaskIndex, 0, maxIndex);
         program.Label_placeTaskIndex.text = "placeTaskIndex: " + placeTaskIndex;
 
         dragTask.Owner = this;
         dragTask.Update(dt);
 
-        if(!dragTask.IsBeingDragged)
+        if(dragTask.ElementState != ElementState.BeingDragged)
         {
+            uiTaskBoxes.Remove(dragTask);
             uiTaskBoxes.Insert(placeTaskIndex, dragTask);
             dragTask = null;
         }
@@ -344,10 +346,7 @@ public class UICard : UIElement
         {
             taskbox.Update(dt);
 
-            if(taskbox.IsBeingRenamed)
-                return;
-
-            if(taskbox.IsBeingDragged)
+            if(taskbox.ElementState == ElementState.BeingDragged)
             {
                 dragTask = taskbox;
                 uiTaskBoxes.Remove(dragTask);
@@ -385,8 +384,8 @@ public class UICard : UIElement
     void UpdateRectHeight()
     {
         //Calculating the rect height
-        int dragging = dragTask != null ? 1 : 0;
-        int rectHeight = bannerHeight + (uiTaskBoxes.Count + dragging) * (UITaskBox.taskHeight + UITaskBox.tasksOffset) + UITaskBox.taskMargin * 2;
+        int dragged = dragTask != null ? 1 : 0;
+        int rectHeight = bannerHeight + (uiTaskBoxes.Count + dragged) * (UITaskBox.taskHeight + UITaskBox.tasksOffset) + UITaskBox.taskMargin * 2;
         rectHeight = Math.Max(rectHeight, minRectHeight);
         rectangle.Height = rectHeight;
     }
