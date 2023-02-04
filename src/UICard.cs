@@ -329,8 +329,9 @@ public class UICard : UIElement
             if(taskbox.IsBeingDragged)
             {
                 dragTask = taskbox;
-                uiTaskBoxes.Remove(taskbox);
-                break;
+                uiTaskBoxes.Remove(dragTask);
+                UpdateDraggingTask(dt);
+                return;
             }
         }
 

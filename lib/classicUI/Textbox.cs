@@ -8,13 +8,13 @@ namespace Lib;
 
 class Textbox : ClassicUIElement
 {
-    private const string avaliableCharaters = "qwertyuiopasdfghjklzxcvbnmQWERTYClassicUIOPASDFGHJKLZXCVBNM1234567890-=!@#$%^&*()_+[]{};':|\\\",./<>?`~ ";
+    private const string avaliableCharaters = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890-=!@#$%^&*()_+[]{};':|\\\",./<>?`~ ";
     private bool focus = false;
     private StringBuilder writtenText = new();
 
     public string WrittenText => writtenText.ToString();
 
-    public Textbox(ClassicUIManager ui, Rectangle rect, string text) : base(ui, rect, text)
+    public Textbox(ClassicUIManager ui, Rectangle rect, string text) : base(ui, rect, text) 
     {
         borderColor = Color.Black;
         bodyColor = Color.White;

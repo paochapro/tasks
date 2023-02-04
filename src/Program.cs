@@ -16,8 +16,8 @@ public class TasksProgram : BaseGame
     List<UICard> uiCards = new();
 
     UIElement? renamingElement;
-    UICard? draggedCard;
     UITaskBox? draggedTask;
+    UICard? draggedCard;
 
     int placeCardIndex;
 
@@ -123,6 +123,7 @@ public class TasksProgram : BaseGame
             if(card.DragTask != null)
             {
                 draggedTask = card.DragTask;
+                UpdateDraggingTask(dt);
                 return;
             }
 
@@ -222,6 +223,13 @@ public class TasksProgram : BaseGame
             SpriteBatch.FillRectangle(bottomBarRect, clearColor.DarkenBy(20));
             SpriteBatch.FillRectangle(cardBinRect, clearColor.DarkenBy(40));
 
+            //Drawing cards
+            foreach(UICard card in uiCards)
+                card.Draw(SpriteBatch);
+
+            //Drawing lib classicUIManager
+            classicUIManager.DrawElements(SpriteBatch);
+
             //Drawing place rect
             if(draggedCard != null)
             {
@@ -234,16 +242,10 @@ public class TasksProgram : BaseGame
                 Rectangle placeRect = new(placePos, new(UICard.rectWidth, draggedCard.Rectangle.Height));
 
                 SpriteBatch.DrawRectangle(placeRect, Color.White, 2);
+
+                draggedCard.Draw(SpriteBatch);
             }
 
-            //Drawing cards
-            foreach(UICard card in uiCards)
-                card.Draw(SpriteBatch);
-
-            //Drawing lib classicUIManager
-            classicUIManager.DrawElements(SpriteBatch);
-
-            draggedCard?.Draw(SpriteBatch);
             draggedTask?.Draw(SpriteBatch);
         }
         SpriteBatch.End();
