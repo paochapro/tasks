@@ -12,15 +12,16 @@
       <PackageReference Include="MonoGame.Extended" Version="3.8.0" />
       <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.0.1641" />
       <PackageReference Include="Myra" Version="1.4.4" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
     </ItemGroup>
 
     <!--Custom implicit usings-->
     <ItemGroup>
-      <Using Include="Microsoft.Xna.Framework"/>
-      <Using Include="Microsoft.Xna.Framework.Graphics"/>
-      <Using Include="Microsoft.Xna.Framework.Input"/>
-      <Using Include="MonoGame.Extended"/>
-      <Using Include="Lib"/>
+      <Using Include="Microsoft.Xna.Framework" />
+      <Using Include="Microsoft.Xna.Framework.Graphics" />
+      <Using Include="Microsoft.Xna.Framework.Input" />
+      <Using Include="MonoGame.Extended" />
+      <Using Include="Lib" />
     </ItemGroup>
 
     <ItemGroup>

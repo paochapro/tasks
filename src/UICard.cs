@@ -4,22 +4,33 @@ namespace tasks;
 
 public class UICard : UIElement
 {
-    public static readonly Color bodyColor = new(90, 90, 90);
-    //public static Texture2D plusTexture;
-    //public static Texture2D colorWheelTexture;
+    static readonly Color defaultBodyColor = new(90, 90, 90);
+
     public const int minRectHeight = 64;
     public const int rectWidth = 256;
-    public const int bannerHeight = 32; //24;
+    public const int bannerHeight = 32;
     public const int cardButtonsWidth = 32;
+    public const int bottomAddition = 4;
 
-    public Card Card => card;
+    //Generate card
+    public Card GeneratedCard {
+        get  {
+            IEnumerable<KeyValuePair<string,bool>> tasks = uiTaskBoxes.Select(tb => new KeyValuePair<string,bool>(tb.Description,tb.IsChecked));
+            Card result = new Card(cardTitle, bannerColor, tasks);
+            return result;
+        }
+    }
+
+    public Color BannerColor => bannerColor;
     public Rectangle Rectangle => rectangle;
     public UITaskBox? DragTask { get => dragTask; set => dragTask = value; }
     public UITaskBox? RenamingTask => uiTaskBoxes.Find(tb => tb.ElementState == ElementState.BeingRenamed);
-    public UITaskBox? ModifyingTask => uiTaskBoxes.Find(tb => tb.ElementState != ElementState.Default);
     public ElementState ElementState => elementState;
     public bool IsQueuedForRemoval => isQueuedForRemoval;
-    public bool IsModifyingAnything => ElementState != ElementState.Default || DragTask != null || RenamingTask != null;
+    //public UITaskBox? ModifyingTask => uiTaskBoxes.Find(tb => tb.ElementState != ElementState.Default);
+    //public bool IsModifyingAnything => ElementState != ElementState.Default || DragTask != null || RenamingTask != null;
+
+    bool isCompleted => uiTaskBoxes.All(tb => tb.IsChecked);
 
     Card card;
     Color bannerColor;
@@ -48,6 +59,7 @@ public class UICard : UIElement
     Color colorWheelButtonClr;
     Color addTaskButtonClr;
     Color bannerTitleColor;
+    Color bodyColor;
     Texture2D plusTexture;
     Texture2D colorWheelTexture;
     readonly Color buttonsDefaultColor;
@@ -56,6 +68,7 @@ public class UICard : UIElement
     readonly Color bannerTitleHoverColor;
     readonly Color tbBodyColor;
     readonly Color tbTextColor;
+    readonly Color completedBodyColor;
 
     public UICard(TasksProgram program, Card card)
     {
@@ -90,6 +103,8 @@ public class UICard : UIElement
         const int bannerTitleDarkenValue = 140;
         const int bannerTitleLightenValue = 70;
 
+        completedBodyColor = bannerColor.DarkenBy(20);
+
         buttonsDefaultColor         = bannerColor.DarkenBy(buttonsDarkenValue);
         buttonsHoverColor           = buttonsDefaultColor.LightenBy(buttonsHoverLightenValue);
         bannerTitleDefaultColor     = bannerColor.DarkenBy(bannerTitleDarkenValue);
@@ -106,9 +121,13 @@ public class UICard : UIElement
 
     public void Update(float dt)
     {
+        bodyColor = defaultBodyColor;
         colorWheelButtonClr = buttonsDefaultColor;
         addTaskButtonClr = buttonsDefaultColor;
         bannerTitleColor = bannerTitleDefaultColor;
+
+        if(isCompleted && uiTaskBoxes.Count != 0)
+            bodyColor = completedBodyColor;
 
         if(DragTask != null)
             UpdateDraggingTask(dt);
@@ -150,22 +169,7 @@ public class UICard : UIElement
         if(renameTextbox != null)
             renameTextbox.Draw(spriteBatch);
         else
-        {
-            float scale = 1.0f;
-
-            float textWidth = font.MeasureString(cardTitle).X;
-            float widthSurpassValue = Utils.inverseLerp(0, cardTitleMaxWidth, textWidth);
-
-            if(widthSurpassValue > 1.0f)
-                scale = 1.0f / widthSurpassValue;
-
-            Vector2 measure = font.MeasureString(cardTitle) * scale;
-            Vector2 rectPos = banner.Location.ToVector2();
-            float y = (banner.Height / 2 - measure.Y / 2);
-            Vector2 titlePos = rectPos + new Vector2(textMarginX, y);
-
-            spriteBatch.DrawString(font, cardTitle, titlePos, bannerTitleColor, 0.0f, Vector2.Zero, scale, SpriteEffects.None, 0);
-        }
+            DrawTitle(spriteBatch);
 
         if(program.DebugMode)
             return;
@@ -201,7 +205,7 @@ public class UICard : UIElement
         {
             Rectangle body = new(rectangle.X, banner.Bottom, rectWidth, rectangle.Height - bannerHeight);
             
-            int y = UITaskBox.taskMargin + (placeTaskIndex * (UITaskBox.taskHeight + UITaskBox.taskMargin));
+            int y = UITaskBox.taskMargin + (placeTaskIndex * (UITaskBox.taskHeight + UITaskBox.tasksOffset));
             Point placeTaskBoxPos = body.Location + new Point(UITaskBox.taskMargin, y);
             Point placeTaskSize = new(UITaskBox.taskWidth, UITaskBox.taskHeight);
             Rectangle placeTaskBox = new(placeTaskBoxPos, placeTaskSize);
@@ -209,6 +213,20 @@ public class UICard : UIElement
             spriteBatch.DrawRectangle(placeTaskBox, Color.White, 2);
             //spriteBatch.DrawRectangle(body, new Color(255,0,0,255), 1);
         }
+    }
+
+    void DrawTitle(SpriteBatch spriteBatch)
+    {
+        Rectangle banner = rectangle with { Height = bannerHeight };
+        spriteBatch.FillRectangle(banner, bannerColor);
+
+        float scale = GetBoundedTextScale(cardTitle, cardTitleMaxWidth, font);
+
+        float x = textMarginX;
+        float y = CenteredTextPosInRect(banner, font, cardTitle, scale).Y;
+        Vector2 titlePos = new Vector2(x + rectangle.X, y);
+
+        spriteBatch.DrawString(font, cardTitle, titlePos, bannerTitleColor, 0.0f, Vector2.Zero, scale, SpriteEffects.None, 0);
     }
 
     //State updates
@@ -263,7 +281,7 @@ public class UICard : UIElement
         int maxIndex = uiTaskBoxes.Count;
         float mouseY = Input.Mouse.Position.ToVector2().Y;
         int dragPos = (int)mouseY - (body.Y + UITaskBox.taskMargin);
-        int taskCellSpace = UITaskBox.taskHeight + UITaskBox.taskMargin;
+        int taskCellSpace = UITaskBox.taskHeight + UITaskBox.tasksOffset;
         placeTaskIndex = dragPos / taskCellSpace;
         placeTaskIndex = clamp(placeTaskIndex, 0, maxIndex);
         program.Label_placeTaskIndex.text = "placeTaskIndex: " + placeTaskIndex;
@@ -363,10 +381,10 @@ public class UICard : UIElement
     void UpdateTaskBoxesPosition()
     {
         //Update taskboxes location
-        int totalY = UICard.bannerHeight + UITaskBox.taskMargin;
+        int totalY = UITaskBox.taskHeight + UITaskBox.tasksOffset;
         Point taskboxPos = rectangle.Location;
         taskboxPos.X += UITaskBox.taskMargin;
-        taskboxPos.Y += totalY;
+        taskboxPos.Y += UICard.bannerHeight + UITaskBox.taskMargin;
 
         foreach(UITaskBox taskbox in uiTaskBoxes) 
         {
@@ -384,8 +402,9 @@ public class UICard : UIElement
     void UpdateRectHeight()
     {
         //Calculating the rect height
-        int dragged = dragTask != null ? 1 : 0;
-        int rectHeight = bannerHeight + (uiTaskBoxes.Count + dragged) * (UITaskBox.taskHeight + UITaskBox.tasksOffset) + UITaskBox.taskMargin * 2;
+        int count = uiTaskBoxes.Count + (dragTask != null ? 1 : 0);
+        int needsBottomAddition = count >= 4 ? bottomAddition : 0;
+        int rectHeight = bannerHeight + (count * UITaskBox.taskHeight) + ( (count-1) * UITaskBox.tasksOffset) + UITaskBox.taskMargin * 2 + needsBottomAddition;
         rectHeight = Math.Max(rectHeight, minRectHeight);
         rectangle.Height = rectHeight;
     }

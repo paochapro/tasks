@@ -90,14 +90,27 @@ internal static class Utils
     public static float lerp(float a, float b, float t) => (1-t) * a + t * b;
     public static float inverseLerp(float a, float b, float v) => (v-a) / (b-a);
 
-    //Something
-    public static Vector2 CenteredTextPosInRect(Rectangle rect, SpriteFont font, string text)
+    //Text
+    public static Vector2 CenteredTextPosInRect(Rectangle rect, SpriteFont font, string text, float measureScale = 1.0f)
     {
         Vector2 rectPos = rect.Location.ToVector2();
-        Vector2 measure = font.MeasureString(text);
+        Vector2 measure = font.MeasureString(text) * measureScale;
         float y = rectPos.Y + (rect.Height / 2 - measure.Y / 2);
         float x = rectPos.X + (y - rectPos.Y);
         return new Vector2(x,y);
+    }
+
+    public static float GetBoundedTextScale(string text, float maxWidth, SpriteFont font)
+    {
+        float scale = 1.0f;
+
+        float textWidth = font.MeasureString(text).X;
+        float widthSurpassValue = Utils.inverseLerp(0, maxWidth, textWidth);
+
+        if(widthSurpassValue > 1.0f)
+            scale = 1.0f / widthSurpassValue;
+
+        return scale;
     }
 }
 

@@ -16,11 +16,11 @@ public class UITaskBox : UIElement
     public const int tasksOffset = 4;
 
     public bool IsQueuedForRemoval => isQueuedForRemoval;
-    //public bool IsBeingDragged => elementState == ElementState.BeingDragged;
-    //public bool IsBeingRenamed => renameTextbox != null;
+    public bool IsChecked => isChecked;
+    public string Description => description;
     public ElementState ElementState => elementState;
     public UICard Owner { get => owner; set => owner = value; }
-    
+
     UICard owner;
     Rectangle rectangle;
     SpriteFont font;
@@ -42,6 +42,7 @@ public class UITaskBox : UIElement
     
     readonly Color tbBodyColor;
     readonly Color tbTextColor;
+    readonly int textMarginX;
 
     //Description
     public UITaskBox(TasksProgram program, string description, bool isChecked, UICard owner)
@@ -55,8 +56,8 @@ public class UITaskBox : UIElement
         //Textbox creator settings
         Rectangle absoluteRect = rectangle with { Location = Point.Zero };
         int textY = (int)Utils.CenteredTextPosInRect(absoluteRect, font, "A").Y;
-        int textMarginX = textY;
-        int tbWidth = taskWidth - (checkboxSize + checkboxMargin * 2) - textMarginX*2;
+        textMarginX = textY;
+        int tbWidth = taskWidth - (checkboxSize + checkboxMargin * 2) - textMarginX;
 
         tbBodyColor = bodyColor.DarkenBy(40);
         tbTextColor = Color.White;
@@ -157,17 +158,25 @@ public class UITaskBox : UIElement
             Rectangle check = checkbox;
             check.Location += new Point(checkMargin);
             check.Size -= new Point(checkMargin * 2);
-            spriteBatch.FillRectangle(check, owner.Card.BannerColor);
+            spriteBatch.FillRectangle(check, owner.BannerColor);
         }
 
         //Description
         if(renameTextbox != null)
             renameTextbox.Draw(spriteBatch);
         else
-        {
-            Vector2 textPos = Utils.CenteredTextPosInRect(rectangle, font, description);
-            spriteBatch.DrawString(font, description, textPos, Color.White);
-        }
+            DrawDescription(spriteBatch);
+    }
 
+    void DrawDescription(SpriteBatch spriteBatch)
+    {
+        float descriptionMaxWidth = rectangle.Width - (checkboxSize + checkboxMargin * 2) - textMarginX;
+        float scale = GetBoundedTextScale(description, descriptionMaxWidth, font);
+
+        float x = textMarginX;
+        float y = CenteredTextPosInRect(rectangle, font, description, scale).Y;
+        Vector2 titlePos = new Vector2(x + rectangle.X, y);
+        
+        spriteBatch.DrawString(font, description, titlePos, Color.White, 0.0f, Vector2.Zero, scale, SpriteEffects.None, 0);
     }
 }

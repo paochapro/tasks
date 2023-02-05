@@ -12,12 +12,9 @@ public class TasksProgram : BaseGame
 
     ClassicUIManager classicUIManager;
     SpriteFont textFont;
+    TableManager tableManager;
 
     List<UICard> uiCards = new();
-
-    //UIElement? renamingElement;
-    //UITaskBox? draggedTask;
-    //UICard? draggedCard;
 
     int placeCardIndex;
 
@@ -46,34 +43,17 @@ public class TasksProgram : BaseGame
         placeCardIndex = dragPos / cardCellSpace;
         placeCardIndex = clamp(placeCardIndex, 0, maxIndex);
 
-        UICard? modifiedCard = uiCards.Find(card => card.ElementState != ElementState.Default);
+        if(!CheckAndUpdateStates(dt))
+        {
+            UpdateDefault(dt);
 
-        if(modifiedCard != null)
-        {   
-            if(modifiedCard.ElementState == ElementState.BeingRenamed)
-                UpdateRenaming(modifiedCard, dt);
-
-            if(modifiedCard.ElementState == ElementState.BeingDragged)
-                UpdateDraggingCard(modifiedCard, dt);
+            if(!CheckAndUpdateStates(dt))
+                UpdateCardsPositions();
         }
 
-        UITaskBox? renamingTask = uiCards.Find(card => card.RenamingTask != null)?.RenamingTask;
-        UITaskBox? draggedTask = uiCards.Find(card => card.DragTask != null)?.DragTask;
-
-        if(renamingTask != null)
-            UpdateRenaming(renamingTask, dt);
-
-        if(draggedTask != null)
-            UpdateDraggingTask(draggedTask, dt);
-
-        if(modifiedCard == null && renamingTask == null && draggedTask == null)
-            UpdateDefault(dt);
-        
         //Remove all cards in removal queue
         uiCards.RemoveAll(c => c.IsQueuedForRemoval);
         
-        UpdateCardsPositions(modifiedCard);
-
         //Debug info (red text)
         lbl_placeCardIndex.text = "placeCardIndex: " + placeCardIndex;
         lbl_dt.text = "dt: " + dt.ToString();
@@ -92,6 +72,39 @@ public class TasksProgram : BaseGame
             lbl_showingFromIndex.Hidden = true;
             lbl_showingToIndex.Hidden = true;
         }
+    }
+
+    bool CheckAndUpdateStates(float dt)
+    {
+        bool dragging = false;
+        UICard? modifiedCard = uiCards.Find(card => card.ElementState != ElementState.Default);
+
+        if(modifiedCard != null)
+        {   
+            if(modifiedCard.ElementState == ElementState.BeingRenamed)
+                UpdateRenaming(modifiedCard, dt);
+
+            if(modifiedCard.ElementState == ElementState.BeingDragged)
+            {
+                UpdateDraggingCard(modifiedCard, dt);
+                UpdateDraggingCardsPosition(modifiedCard);
+                dragging = true;
+            }
+        }
+
+        UITaskBox? renamingTask = uiCards.Find(card => card.RenamingTask != null)?.RenamingTask;
+        UITaskBox? draggedTask = uiCards.Find(card => card.DragTask != null)?.DragTask;
+
+        if(renamingTask != null)
+            UpdateRenaming(renamingTask, dt);
+
+        if(draggedTask != null)
+            UpdateDraggingTask(draggedTask, dt);
+
+        if(!dragging)
+            UpdateCardsPositions();
+
+        return modifiedCard != null || renamingTask != null || draggedTask != null;
     }
 
     void UpdateDefault(float dt)
@@ -157,35 +170,35 @@ public class TasksProgram : BaseGame
         }
     }
 
-    void UpdateCardsPositions(UICard? modifiedCard)
+    void UpdateCardsPositions()
     {
         Point cardPos = new Point(cardStartOffset);
 
-        if(modifiedCard?.ElementState == ElementState.BeingDragged)
+        foreach(UICard card in uiCards)
         {
-            IEnumerable<UICard> drawCards = uiCards.Where(card => card.ElementState != ElementState.BeingDragged);
-            foreach(UICard card in drawCards)
-            {
-                if(card == drawCards.ElementAtOrDefault(placeCardIndex))
-                    cardPos.X += UICard.rectWidth + 16;
-
-                card.UpdatePosition(cardPos);
-                cardPos.X += UICard.rectWidth + 16;
-            }
+            card.UpdatePosition(cardPos);
+            cardPos.X += UICard.rectWidth + 16;
         }
-        else
+    }
+
+    void UpdateDraggingCardsPosition(UICard draggedCard)
+    {
+        Point cardPos = new Point(cardStartOffset);
+
+        IEnumerable<UICard> drawCards = uiCards.Where(card => !card.Equals(draggedCard));
+        foreach(UICard card in drawCards)
         {
-            foreach(UICard card in uiCards)
-            {
-                card.UpdatePosition(cardPos);
+            if(card == drawCards.ElementAtOrDefault(placeCardIndex))
                 cardPos.X += UICard.rectWidth + 16;
-            }
+
+            card.UpdatePosition(cardPos);
+            cardPos.X += UICard.rectWidth + 16;
         }
     }
 
     void AddCard()
     {
-        Card defaultCard = new Card("New", currentListOfColors.FirstOrDefault());
+        Card defaultCard = new Card("New", currentListOfColors.FirstOrDefault(), new Dictionary<string, bool>());
         currentListOfColors.RemoveAt(0);
 
         if(currentListOfColors.Count == 0)
@@ -193,6 +206,23 @@ public class TasksProgram : BaseGame
 
         UICard defaultUICard = new UICard(this, defaultCard);
         uiCards.Add(defaultUICard);
+    }
+
+    void Save(string filepath)
+    {
+        tableManager.SaveFile(uiCards.ToArray(), "tables/" + filepath);
+    }
+
+    bool Load(string filepath)
+    {
+        Card[]? cards = tableManager.LoadFile("tables/" + filepath);
+
+        if(cards == null)
+            return false;
+
+        uiCards = cards.Select(card => new UICard(this, card)).ToList();
+
+        return true;
     }
 
     protected override void Paint(SpriteBatch spriteBatch)
@@ -245,6 +275,7 @@ public class TasksProgram : BaseGame
     {
         textFont = Assets.GetDefault<SpriteFont>();
         classicUIManager = new ClassicUIManager(this);
+        tableManager = new TableManager();
 
         listOfColors = new() {
             Color.Red,
@@ -293,23 +324,26 @@ public class TasksProgram : BaseGame
                 color.G = (byte)Rnd.Int(0,255);
                 color.B = (byte)Rnd.Int(0,255);
 
-                Card card = new Card("card " + c, color);
-                
+                List<KeyValuePair<string,bool>> tasks = new();
+
                 for(int t = 0; t < Rnd.Int(3,12); ++t)
                 {
                     string taskText = "task " + t;
                     bool isChecked = Convert.ToBoolean(Rnd.Int(0,1));
-                    card.Tasks.Add(taskText, isChecked);
+                    tasks.Add(new KeyValuePair<string,bool>(taskText, isChecked));
                 }
-                
+
+                Card card = new Card("card " + c, color, tasks);
                 uiCards.Add(new UICard(this, card));
             }
         };
 
+        Textbox tb = new Textbox(classicUIManager, new(200, 750, 400, 25), "saving");
+
         Button generateRandom = new Button(classicUIManager, new Rectangle(500,700,200,50), addRandomizedCards, "Generate random");
         Button addCard = new Button(classicUIManager, new Rectangle(200,700,200,50), AddCard, "Add card");
-
-        addRandomizedCards();
+        Button saveCards = new Button(classicUIManager, new Rectangle(700,700,200,50), () => Save(tb.WrittenText), "Save");
+        Button loadCards = new Button(classicUIManager, new Rectangle(900,700,200,50), () => Load(tb.WrittenText), "Load");
     }
 
     protected override void Init() 
