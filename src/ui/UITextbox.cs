@@ -6,7 +6,6 @@ class UITextbox
     public Color BodyColor { get => bodyColor; set => bodyColor = value; }
     public Color TextColor { get => textColor; set => textColor = value; }
     public string TextboxText => Text;
-    public TasksProgram? program; //for debugging purposes
 
     const int beamWidth = 1;
     int showingFromIndex;
@@ -46,11 +45,6 @@ class UITextbox
         tbInput.Update(dt);
 
         UpdateShowingIndexes();
-
-        if(program != null) {
-            program.lbl_showingFromIndex.text = "showingFromIndex: " + showingFromIndex; 
-            program.lbl_showingToIndex.text = "showingToIndex: " + showingToIndex;
-        }
     }
 
     public void Draw(SpriteBatch spriteBatch)

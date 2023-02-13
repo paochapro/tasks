@@ -4,9 +4,9 @@ using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
 using System.Text;
 
-namespace Lib;
+namespace Lib.Gui;
 
-class Textbox : ClassicUIElement
+class Textbox : LibGuiElement
 {
     private const string avaliableCharaters = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890-=!@#$%^&*()_+[]{};':|\\\",./<>?`~ ";
     private bool focus = false;
@@ -14,23 +14,21 @@ class Textbox : ClassicUIElement
 
     public string WrittenText => writtenText.ToString();
 
-    public Textbox(ClassicUIManager ui, Rectangle rect, string text) : base(ui, rect, text) 
+    public Textbox(LibGuiManager ui, Rectangle rect, string text) : base(ui, rect, text) 
     {
-        borderColor = Color.Black;
-        bodyColor = Color.White;
     }
 
     public override void Activate()
     {
         if (focus) return;
 
-        ClassicUIManager.Game.Window.TextInput += TextInput;
+        LibGuiManager.Game.Window.TextInput += TextInput;
         focus = true;        
     }
 
     public void Deactivate()
     {
-        ClassicUIManager.Game.Window.TextInput -= TextInput;
+        LibGuiManager.Game.Window.TextInput -= TextInput;
         focus = false;
     }
 
@@ -50,9 +48,9 @@ class Textbox : ClassicUIElement
     {
         if (rect.Contains(mouse.Position))
         {
-            ClassicUIManager.MouseCursor = MouseCursor.IBeam;
+            LibGuiManager.MouseCursor = MouseCursor.IBeam;
 
-            if (mouse.LeftButton == ButtonState.Pressed && !ClassicUIManager.Clicking)
+            if (mouse.LeftButton == ButtonState.Pressed && !LibGuiManager.Clicking)
             {
                 Activate();
                 return;
@@ -61,7 +59,7 @@ class Textbox : ClassicUIElement
         
         bool unfocusInput = (
             keys.IsKeyDown(Keys.Escape) ||
-            (mouse.LeftButton == ButtonState.Pressed && !ClassicUIManager.Clicking)
+            (mouse.LeftButton == ButtonState.Pressed && !LibGuiManager.Clicking)
         ); 
         
         if (focus && unfocusInput)
@@ -73,10 +71,10 @@ class Textbox : ClassicUIElement
         spriteBatch.FillRectangle(rect, bodyColor);
 
         if(writtenText.Length == 0 && !focus)
-            spriteBatch.DrawString(ClassicUIManager.Font, text, rect.Location.ToVector2() + new Vector2(10, 10), Color.Gray);
+            spriteBatch.DrawString(LibGuiManager.Font, text, rect.Location.ToVector2() + new Vector2(10, 10), Color.Gray);
         else
-            spriteBatch.DrawString(ClassicUIManager.Font, writtenText, rect.Location.ToVector2() + new Vector2(10, 10), borderColor);
+            spriteBatch.DrawString(LibGuiManager.Font, writtenText, rect.Location.ToVector2() + new Vector2(10, 10), borderColor);
 
-        spriteBatch.DrawRectangle(rect, focus ? Color.Blue : borderColor, 3);
+        spriteBatch.DrawRectangle(rect, focus ? Color.Blue : borderColor, 2);
     }
 }

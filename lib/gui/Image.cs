@@ -2,19 +2,19 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 
-namespace Lib;
+namespace Lib.Gui;
 
-class Image : ClassicUIElement
+class Image : LibGuiElement
 {
     public Texture2D Texture { get; private set; }
     public Angle Rotation { get; set; }
     
-    public Image(ClassicUIManager ui, Texture2D image, Rectangle box) : base(ui, box, "")
+    public Image(LibGuiManager ui, Texture2D image, Rectangle box) : base(ui, box, "")
     {
         Texture = image;
     }
     
-    public Image(ClassicUIManager ui, Texture2D image, Point position)
+    public Image(LibGuiManager ui, Texture2D image, Point position)
         : this(ui, image, new Rectangle(position, image.Bounds.Size))
     {
     }

@@ -3,9 +3,9 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using static Lib.Utils;
 
-namespace Lib;
+namespace Lib.Gui;
 
-class Slider : ClassicUIElement
+class Slider : LibGuiElement
 {
     public const int sizeY = 50;
     const int sliderSizeX = 20;
@@ -22,7 +22,7 @@ class Slider : ClassicUIElement
     Point textSize;
     Point textPos;
 
-    public Slider(ClassicUIManager ui, Point pos, string text, Action<int> func, int defaultValue, int layer) : base(ui, new Rectangle(pos, Point.Zero), text)
+    public Slider(LibGuiManager ui, Point pos, string text, Action<int> func, int defaultValue, int layer) : base(ui, new Rectangle(pos, Point.Zero), text)
     {
         textSize = ui.Font.MeasureString(text).ToPoint();
         textPos = new Point(pos.X, center(pos.Y, pos.Y + size.Y, textSize.Y) - 3);
@@ -52,7 +52,7 @@ class Slider : ClassicUIElement
 
     public override void _Draw(SpriteBatch spriteBatch)
     {
-        spriteBatch.DrawString(ClassicUIManager.Font, text, textPos.ToVector2(), Color.Black);
+        spriteBatch.DrawString(LibGuiManager.Font, text, textPos.ToVector2(), Color.Black);
 
         Rectangle bar = new Rectangle(rect.X, center(rect.Y, rect.Y + size.Y, barSizeY), size.X, barSizeY);
         spriteBatch.FillRectangle(bar, Color.Gray);

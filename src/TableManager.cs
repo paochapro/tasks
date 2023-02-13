@@ -4,7 +4,7 @@ using static Lib.Utils;
 
 namespace tasks;
 
-class TableManager
+class TableFileManager
 {
     public Card[]? LoadFile(string filepath)
     {

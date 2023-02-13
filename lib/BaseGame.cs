@@ -1,9 +1,8 @@
-namespace tasks;
+namespace Lib;
 
 public abstract class BaseGame : Game
 {
     public GraphicsDeviceManager Graphics => graphics;
-    public SpriteBatch SpriteBatch => spriteBatch;
     public Assets Assets => assets;
     public bool DebugMode => debugMode;
     public readonly Color clearColor = new(100,100,100,255);
@@ -39,7 +38,7 @@ public abstract class BaseGame : Game
         base.Update(gameTime);
     }
 
-    protected sealed override void Draw(GameTime gameTime) => Paint(SpriteBatch);
+    protected sealed override void Draw(GameTime gameTime) => Render(spriteBatch);
 
     protected sealed override void LoadContent()
     {
@@ -60,7 +59,7 @@ public abstract class BaseGame : Game
 
     //Yes, I have to use synonyms and stuff to make this work :P
     protected abstract void Process(float dt);
-    protected abstract void Paint(SpriteBatch spriteBatch);
+    protected abstract void Render(SpriteBatch spriteBatch);
     protected abstract void LoadAssets();
     protected abstract void Init();
 }

@@ -3,13 +3,13 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
 
-namespace Lib;
+namespace Lib.Gui;
 
-public abstract class ClassicUIElement
+public abstract class LibGuiElement
 {
     //Fiels
-    private ClassicUIManager ui;
-    private bool locked = false;
+    LibGuiManager ui;
+    bool locked = false;
     protected int layer = 0;
     protected bool allowHold;
 
@@ -21,7 +21,7 @@ public abstract class ClassicUIElement
     protected Color textColor = Color.Purple;
 
     //Properties
-    public ClassicUIManager ClassicUIManager => ui;
+    public LibGuiManager LibGuiManager => ui;
     public bool Hidden { get; set; }
     public int Layer => layer;
     public bool Locked
@@ -42,21 +42,24 @@ public abstract class ClassicUIElement
     public Point Position { get => rect.Location; set => rect.Location = value; }
     public Point Size { get => rect.Size; set => rect.Size = value; }
 
-    protected ClassicUIElement(ClassicUIManager ui)
+    protected LibGuiElement(LibGuiManager ui)
     {
         this.ui = ui;
         ui.Add(this);
         text = "";
     }
 
-    protected ClassicUIElement(ClassicUIManager ui, Rectangle rect, string text)
+    protected LibGuiElement(LibGuiManager ui, Rectangle rect, string text) : this(ui)
     {
-        this.ui = ui;
-        ui.Add(this);
+        borderColor = ui.BorderDefaultColor;
+        bodyColor = ui.BodyDefaultColor;
+        textColor = ui.TextDefaultColor;
 
         this.rect = rect;
         this.text = text;
     }
+
+    public virtual void Activate() => throw new NotImplementedException("activation isnt implemented on this LibGuiManager element (LibGuiElement:Activate)");
 
     public virtual void _Update(KeyboardState keys, MouseState mouse)
     {
@@ -77,6 +80,5 @@ public abstract class ClassicUIElement
         }
     }
 
-    public virtual void _Draw(SpriteBatch spriteBatch) => throw new NotImplementedException("draw isnt implemented on this ClassicUIManager element (ClassicUIElement:_Draw)");
-    public virtual void Activate() => throw new NotImplementedException("activation isnt implemented on this ClassicUIManager element (ClassicUIElement:Activate)");
+    public virtual void _Draw(SpriteBatch spriteBatch) => throw new NotImplementedException("draw isnt implemented on this LibGuiManager element (LibGuiElement:_Draw)");
 }

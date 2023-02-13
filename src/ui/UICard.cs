@@ -15,20 +15,19 @@ public class UICard : UIElement
     //Generate card
     public Card GeneratedCard {
         get  {
-            IEnumerable<KeyValuePair<string,bool>> tasks = uiTaskBoxes.Select(tb => new KeyValuePair<string,bool>(tb.Description,tb.IsChecked));
+            var createKeyValuePair = (UITaskBox tb) => new KeyValuePair<string,bool>(tb.Description, tb.IsChecked);
+            var tasks = uiTaskBoxes.Select(createKeyValuePair);
             Card result = new Card(cardTitle, bannerColor, tasks);
             return result;
         }
     }
 
-    public Color BannerColor => bannerColor;
+    public Color BannerColor => bannerColor; 
     public Rectangle Rectangle => rectangle;
     public UITaskBox? DragTask { get => dragTask; set => dragTask = value; }
     public UITaskBox? RenamingTask => uiTaskBoxes.Find(tb => tb.ElementState == ElementState.BeingRenamed);
     public ElementState ElementState => elementState;
     public bool IsQueuedForRemoval => isQueuedForRemoval;
-    //public UITaskBox? ModifyingTask => uiTaskBoxes.Find(tb => tb.ElementState != ElementState.Default);
-    //public bool IsModifyingAnything => ElementState != ElementState.Default || DragTask != null || RenamingTask != null;
 
     bool isCompleted => uiTaskBoxes.All(tb => tb.IsChecked);
 
@@ -41,8 +40,6 @@ public class UICard : UIElement
     TasksProgram program;
     int placeTaskIndex;
     bool isQueuedForRemoval;
-    int cardTitleMaxWidth;
-    int textMarginX;
     UITextboxCreator renameTbCreator;
     ElementState elementState;
 
@@ -58,17 +55,17 @@ public class UICard : UIElement
     SpriteFont font;
     Color colorWheelButtonClr;
     Color addTaskButtonClr;
-    Color bannerTitleColor;
     Color bodyColor;
     Texture2D plusTexture;
     Texture2D colorWheelTexture;
-    readonly Color buttonsDefaultColor;
-    readonly Color buttonsHoverColor;
-    readonly Color bannerTitleDefaultColor;
-    readonly Color bannerTitleHoverColor;
-    readonly Color tbBodyColor;
-    readonly Color tbTextColor;
-    readonly Color completedBodyColor;
+    Color buttonsDefaultColor;
+    Color buttonsHoverColor;
+    Color bannerTitleColor;
+    Color tbBodyColor;
+    Color tbTextColor;
+    Color completedBodyColor;
+    readonly int cardTitleMaxWidth;
+    readonly int textMarginX;
 
     public UICard(TasksProgram program, Card card)
     {
@@ -89,7 +86,6 @@ public class UICard : UIElement
         cardTitleMaxWidth = rectWidth - cardButtonsWidth * 2 - textMarginX*2;
 
         //Copying data from card
-        this.bannerColor = card.BannerColor;
         this.cardTitle = card.Title;
 
         foreach (KeyValuePair<string, bool> task in card.Tasks)
@@ -97,26 +93,7 @@ public class UICard : UIElement
             AddTask(new UITaskBox(program, task.Key, task.Value, this));
         }
 
-        //Colors and stuff
-        const int buttonsDarkenValue = 60;
-        const int buttonsHoverLightenValue = 30;
-        const int bannerTitleDarkenValue = 140;
-        const int bannerTitleLightenValue = 70;
-
-        completedBodyColor = bannerColor.DarkenBy(20);
-
-        buttonsDefaultColor         = bannerColor.DarkenBy(buttonsDarkenValue);
-        buttonsHoverColor           = buttonsDefaultColor.LightenBy(buttonsHoverLightenValue);
-        bannerTitleDefaultColor     = bannerColor.DarkenBy(bannerTitleDarkenValue);
-        bannerTitleHoverColor       = bannerTitleDefaultColor.LightenBy(bannerTitleLightenValue);
-
-        colorWheelButtonClr = buttonsDefaultColor;
-        addTaskButtonClr = buttonsDefaultColor;
-        bannerTitleColor = bannerTitleDefaultColor;
-
-        tbBodyColor = bannerColor.DarkenBy(40);
-        tbTextColor = Color.White;
-        renameTbCreator = new UITextboxCreator(program.Window, cardTitleMaxWidth, 9999, tbBodyColor, tbTextColor, font);
+        UpdateColor(card.BannerColor);
     }
 
     public void Update(float dt)
@@ -124,7 +101,6 @@ public class UICard : UIElement
         bodyColor = defaultBodyColor;
         colorWheelButtonClr = buttonsDefaultColor;
         addTaskButtonClr = buttonsDefaultColor;
-        bannerTitleColor = bannerTitleDefaultColor;
 
         if(isCompleted && uiTaskBoxes.Count != 0)
             bodyColor = completedBodyColor;
@@ -170,9 +146,6 @@ public class UICard : UIElement
             renameTextbox.Draw(spriteBatch);
         else
             DrawTitle(spriteBatch);
-
-        if(program.DebugMode)
-            return;
 
         //Add task and color wheel buttons
         Color hoverRectColorAddTask = Color.Transparent;
@@ -284,7 +257,6 @@ public class UICard : UIElement
         int taskCellSpace = UITaskBox.taskHeight + UITaskBox.tasksOffset;
         placeTaskIndex = dragPos / taskCellSpace;
         placeTaskIndex = clamp(placeTaskIndex, 0, maxIndex);
-        program.Label_placeTaskIndex.text = "placeTaskIndex: " + placeTaskIndex;
 
         dragTask.Owner = this;
         dragTask.Update(dt);
@@ -330,7 +302,7 @@ public class UICard : UIElement
             colorWheelButtonClr = buttonsHoverColor;
 
             if(Input.LBPressed())
-                print("Color wheel button");
+                program.CreateColorWheelDialog(this);
 
             return;
         }
@@ -351,9 +323,6 @@ public class UICard : UIElement
             {
                 Point pos = Utils.CenteredTextPosInRect(bannerRect, font, cardTitle).ToPoint();
                 renameTextbox = renameTbCreator.CreateUITextbox(pos, cardTitle);
-
-                //debug
-                renameTextbox.program = this.program;
             }
         }
     }
@@ -403,10 +372,33 @@ public class UICard : UIElement
     {
         //Calculating the rect height
         int count = uiTaskBoxes.Count + (dragTask != null ? 1 : 0);
-        int needsBottomAddition = count >= 4 ? bottomAddition : 0;
+        int needsBottomAddition = count >= 2 ? bottomAddition : 0;
         int rectHeight = bannerHeight + (count * UITaskBox.taskHeight) + ( (count-1) * UITaskBox.tasksOffset) + UITaskBox.taskMargin * 2 + needsBottomAddition;
         rectHeight = Math.Max(rectHeight, minRectHeight);
         rectangle.Height = rectHeight;
+    }
+
+    public void UpdateColor(Color newBannerColor)
+    {
+        bannerColor = newBannerColor;
+
+        //Colors and stuff
+        const int buttonsDarkenValue = 60;
+        const int buttonsHoverLightenValue = 30;
+        const int bannerTitleDarkenValue = 140;
+
+        completedBodyColor = bannerColor.DarkenBy(20);
+
+        buttonsDefaultColor         = bannerColor.DarkenBy(buttonsDarkenValue);
+        buttonsHoverColor           = buttonsDefaultColor.LightenBy(buttonsHoverLightenValue);
+        bannerTitleColor            = bannerColor.DarkenBy(bannerTitleDarkenValue);
+
+        colorWheelButtonClr = buttonsDefaultColor;
+        addTaskButtonClr = buttonsDefaultColor;
+
+        tbBodyColor = bannerColor.DarkenBy(40);
+        tbTextColor = Color.White;
+        renameTbCreator = new UITextboxCreator(program.Window, cardTitleMaxWidth, 9999, tbBodyColor, tbTextColor, font);
     }
 
     void AddTask(UITaskBox taskBox)
