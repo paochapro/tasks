@@ -1,18 +1,16 @@
 ﻿using static Lib.Utils;
-using Myra.Graphics2D;
 using Myra.Graphics2D.UI;
-using Myra.Graphics2D.Brushes;
+using System.Text.RegularExpressions;
 
 namespace tasks;
 
-public class TasksProgram : BaseGame
+public partial class TasksProgram : BaseGame
 {
     public Rectangle CardBinRect => cardBinRect;
     public SpriteFont TextFont => textFont;
 
     Desktop desktop;
     TableFileManager tableFileManager;
-    VerticalStackPanel rootContainer;
 
     List<UICard> uiCards = new();
     int placeCardIndex;
@@ -174,14 +172,71 @@ public class TasksProgram : BaseGame
         uiCards.Add(defaultUICard);
     }
 
+    void RenderPlaceholderCard(SpriteBatch spriteBatch, int draggedCardHeight)
+    {
+        Point pos = new Point(cardStartOffset + placeCardIndex * (UICard.rectWidth + 16), cardStartOffset);
+
+        int cardH = draggedCardHeight;
+        const int cardW = UICard.rectWidth;
+        const int size = 10;
+        const int halfSize = size/2;
+        const int thick = 2;
+
+        var drawLinePoints = (Vector2 p1, Vector2 p2) => {
+            spriteBatch.DrawLine(p1, p2, Color.White, thick);
+        };
+
+        var drawLine = (float x1, float y1, float x2, float y2) => {
+            spriteBatch.DrawLine(new(x1,y1), new(x2,y2), Color.White, thick);
+        };
+
+        var drawHorizontalLine = (int y) => 
+        {
+            int startX = pos.X + halfSize + size;
+            int endX = cardW + pos.X;
+            int offset = size*2;
+
+            drawLine(pos.X, y, pos.X + halfSize, y);
+            drawLine(pos.X + cardW - halfSize, y, pos.X + cardW - thick, y);
+
+            for(int x = startX; (x + size) <= endX; x += offset)
+            {
+                drawLine(x, y, x + size, y);
+            }
+        };
+
+        var drawVerticalLine = (int x) => 
+        {
+            int startY = pos.Y + halfSize + size;
+            int endY = pos.Y + draggedCardHeight;
+            int offset = size*2;
+
+            drawLine(x, pos.Y, x, pos.Y + halfSize);
+            drawLine(x, pos.Y + cardH - halfSize, x, pos.Y + cardH - thick);
+
+            for(int y = startY; (y + size) <= endY; y += offset)
+            {
+                drawLine(x, y, x, y + size);
+            }
+        };
+
+        drawHorizontalLine(pos.Y);
+        drawHorizontalLine(pos.Y + draggedCardHeight - thick);
+        drawVerticalLine(pos.X);
+        drawVerticalLine(pos.X + UICard.rectWidth - thick);
+        
+        //Rectangle placeRect = new(pos, new(UICard.rectWidth, draggedCardHeight));
+        //spriteBatch.DrawRectangle(placeRect, Color.White, 2);
+    }
+
     bool Save(string filepath)
     {
-        return tableFileManager.SaveFile(uiCards.ToArray(), "tables/" + filepath);
+        return tableFileManager.SaveFile(uiCards.ToArray(), tablesPath + filepath);
     }
 
     bool Load(string filepath)
     {
-        Card[]? cards = tableFileManager.LoadFile("tables/" + filepath);
+        Card[]? cards = tableFileManager.LoadFile(tablesPath + filepath);
 
         if(cards == null)
             return false;
@@ -208,21 +263,13 @@ public class TasksProgram : BaseGame
                     continue;
 
                 card.Draw(spriteBatch);
-            }
+            }   
 
             UICard? draggedCard = uiCards.Find(card => card.ElementState == ElementState.BeingDragged);
 
-            if(draggedCard != null)
-            {
-                Point placePos = new Point(cardStartOffset);
-
-                placePos.X += placeCardIndex * (UICard.rectWidth + 16);
-
-                //Place rect
-                Rectangle placeRect = new(placePos, new(UICard.rectWidth, draggedCard.Rectangle.Height));
-
-                spriteBatch.DrawRectangle(placeRect, Color.White, 2);
-
+            if(draggedCard != null) 
+            {   
+                RenderPlaceholderCard(spriteBatch, draggedCard.Rectangle.Height); 
                 draggedCard.Draw(spriteBatch);
             }
 
@@ -258,7 +305,7 @@ public class TasksProgram : BaseGame
         bottomBarRect = new Rectangle(0, Screen.Y - bottomBarHeight, Screen.X, bottomBarHeight);
         cardBinRect = bottomBarRect with { Width = cardBinWidth, X = bottomBarRect.Right - cardBinWidth };
         
-        CreateGUI();
+        CreateUI();
     }
 
     protected override void Init()
@@ -289,109 +336,6 @@ public class TasksProgram : BaseGame
             Card card = new Card("card " + c, color, tasks);
             uiCards.Add(new UICard(this, card));
         }
-    }
-
-    void CreateGUI()
-    {
-        rootContainer = new();
-
-        HorizontalStackPanel fillerPanel = new() {
-            Width = Screen.X,
-            Height = Screen.Y - bottomBarRect.Height,
-        };
-
-        HorizontalStackPanel bottomPanel = new() {
-            Width = bottomBarRect.Width - cardBinRect.Width,
-            Height = bottomBarRect.Height,
-        };
-
-        TextButton saveButton, loadButton, generateButton;
-        Point btnSize = new(200,50);
-
-        saveButton = new() {
-            Text = "Save",
-            Width = btnSize.X,
-            Height = btnSize.Y,
-        };
-        loadButton = new() {
-            Text = "Load",
-            Width = btnSize.X,
-            Height = btnSize.Y,
-        };
-        generateButton = new() {
-            Text = "Generate",
-            Width = btnSize.X,
-            Height = btnSize.Y,
-        };
-
-        saveButton.Click += (s, e) => CreateFileDialog("Save", "Save as", Save);
-        loadButton.Click += (s, e) => CreateFileDialog("Load", "Load file", Load);
-        generateButton.Click += (s, e) => GenerateRandomCards();
-        
-        bottomPanel.AddChild(saveButton);
-        bottomPanel.AddChild(loadButton);
-        bottomPanel.AddChild(generateButton);
-
-        rootContainer.AddChild(fillerPanel);
-        rootContainer.AddChild(bottomPanel);
-
-        desktop.Root = rootContainer;
-    }
-
-    void CreateFileDialog(string title, string labelText, Func<string, bool> onAccept)
-    {
-        VerticalStackPanel panel = new();
-        TextBox tb;
-        Label label;
-
-        tb = new() {
-            HintText = "Enter path",
-            TextColor = Color.White
-        };
-
-        label = new() {
-            Text = labelText,
-            TextColor = Color.White
-        };
-
-        panel.Widgets.Add(label);
-        panel.Widgets.Add(tb);
-
-        Dialog dialog = Dialog.CreateMessageBox(title, panel);
-        dialog.ButtonOk.Click += (s, e) => onAccept.Invoke(tb.Text);
-        dialog.ShowModal(desktop);
-    }
-
-    public void CreateColorWheelDialog(UICard card)
-    {
-        VerticalStackPanel panel = new();
-        TextBox tb;
-        Label label;
-
-        tb = new() {
-            HintText = "Enter color",
-            TextColor = Color.White
-        };
-
-        label = new() {
-            Text = "Color (X,X,X):",
-            TextColor = Color.White
-        };
-
-        panel.Widgets.Add(label);
-        panel.Widgets.Add(tb);
-
-        var onAccept = (UICard card, string strColor) => 
-        {
-            //Needs regex
-            byte[] rgb = strColor.Split(",").Select(val => byte.Parse(val)).ToArray();
-            Color color = new(rgb[0], rgb[1], rgb[2]);
-            card.UpdateColor(color);
-        };
-
-        Dialog dialog = Dialog.CreateMessageBox("Color", panel);
-        dialog.ButtonOk.Click += (s, e) => onAccept.Invoke(card, tb.Text);
-        dialog.ShowModal(desktop);
     }
 }
 
