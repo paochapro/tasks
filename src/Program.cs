@@ -172,7 +172,7 @@ public partial class TasksProgram : BaseGame
         uiCards.Add(defaultUICard);
     }
 
-    void RenderPlaceholderCard(SpriteBatch spriteBatch, int draggedCardHeight)
+    void RenderPlaceholderFrame(SpriteBatch spriteBatch, int draggedCardHeight)
     {
         Point pos = new Point(cardStartOffset + placeCardIndex * (UICard.rectWidth + 16), cardStartOffset);
 
@@ -181,23 +181,19 @@ public partial class TasksProgram : BaseGame
         const int size = 10;
         const int halfSize = size/2;
         const int thick = 2;
-
-        var drawLinePoints = (Vector2 p1, Vector2 p2) => {
-            spriteBatch.DrawLine(p1, p2, Color.White, thick);
-        };
-
+        const int offset = size*2;
+        
         var drawLine = (float x1, float y1, float x2, float y2) => {
-            spriteBatch.DrawLine(new(x1,y1), new(x2,y2), Color.White, thick);
+            spriteBatch.DrawLine(x1,y1,x2,y2, Color.White, thick);
         };
 
-        var drawHorizontalLine = (int y) => 
+        var drawHorizontalLines = (int y) => 
         {
             int startX = pos.X + halfSize + size;
-            int endX = cardW + pos.X;
-            int offset = size*2;
+            int endX = pos.X + cardW;
 
             drawLine(pos.X, y, pos.X + halfSize, y);
-            drawLine(pos.X + cardW - halfSize, y, pos.X + cardW - thick, y);
+            drawLine(pos.X + cardW - halfSize - thick, y, pos.X + cardW - thick, y);
 
             for(int x = startX; (x + size) <= endX; x += offset)
             {
@@ -205,14 +201,13 @@ public partial class TasksProgram : BaseGame
             }
         };
 
-        var drawVerticalLine = (int x) => 
+        var drawVerticalLines = (int x) => 
         {
             int startY = pos.Y + halfSize + size;
             int endY = pos.Y + draggedCardHeight;
-            int offset = size*2;
 
             drawLine(x, pos.Y, x, pos.Y + halfSize);
-            drawLine(x, pos.Y + cardH - halfSize, x, pos.Y + cardH - thick);
+            drawLine(x, pos.Y + cardH - halfSize - thick, x, pos.Y + cardH - thick);
 
             for(int y = startY; (y + size) <= endY; y += offset)
             {
@@ -220,10 +215,10 @@ public partial class TasksProgram : BaseGame
             }
         };
 
-        drawHorizontalLine(pos.Y);
-        drawHorizontalLine(pos.Y + draggedCardHeight - thick);
-        drawVerticalLine(pos.X);
-        drawVerticalLine(pos.X + UICard.rectWidth - thick);
+        drawHorizontalLines(pos.Y);
+        drawHorizontalLines(pos.Y + draggedCardHeight - thick);
+        drawVerticalLines(pos.X);
+        drawVerticalLines(pos.X + UICard.rectWidth - thick);
         
         //Rectangle placeRect = new(pos, new(UICard.rectWidth, draggedCardHeight));
         //spriteBatch.DrawRectangle(placeRect, Color.White, 2);
@@ -269,7 +264,7 @@ public partial class TasksProgram : BaseGame
 
             if(draggedCard != null) 
             {   
-                RenderPlaceholderCard(spriteBatch, draggedCard.Rectangle.Height); 
+                RenderPlaceholderFrame(spriteBatch, draggedCard.Rectangle.Height); 
                 draggedCard.Draw(spriteBatch);
             }
 

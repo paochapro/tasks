@@ -51,7 +51,7 @@ public abstract class BaseGame : Game
     protected sealed override void Initialize()
     {
         Screen = new(1400,800);
-        Window.AllowUserResizing = false;
+        Window.AllowUserResizing = true;
         IsMouseVisible = true;
         Init();
         base.Initialize();

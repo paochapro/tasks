@@ -1,4 +1,5 @@
 using Myra.Graphics2D.UI;
+using Myra.Graphics2D.UI.ColorPicker;
 
 namespace tasks;
 
@@ -127,16 +128,23 @@ public partial class TasksProgram
         panel.Widgets.Add(label);
         panel.Widgets.Add(tb);
 
-        var onAccept = (UICard card, string strColor) => 
+        var onAccept = (UICard card, object obj) => 
         {
+            if(obj is Dialog dialog) {
+                card.UpdateColor((dialog.Content as ColorPickerPanel).Color);
+            }
+
             //Needs regex
-            byte[] rgb = strColor.Split(",").Select(val => byte.Parse(val)).ToArray();
-            Color color = new(rgb[0], rgb[1], rgb[2]);
-            card.UpdateColor(color);
+            //byte[] rgb = strColor.Split(",").Select(val => byte.Parse(val)).ToArray();
+            //Color color = new(rgb[0], rgb[1], rgb[2]);
+            //card.UpdateColor(colorDialog.Color);
         };
 
-        Dialog dialog = Dialog.CreateMessageBox("Color", panel);
-        dialog.ButtonOk.Click += (s, e) => onAccept.Invoke(card, tb.Text);
+        //Dialog dialog = Dialog.CreateMessageBox("Color", panel);
+        var dialog = Dialog.CreateMessageBox("Choose card color", new ColorPickerPanel());
+        //dialog.Title = "Choose card color";
+        //dialog.Content = new ColorPickerPanel();
+        dialog.ButtonOk.Click += (s, e) => onAccept.Invoke(card, dialog);
         dialog.ShowModal(desktop);
     }
 }
