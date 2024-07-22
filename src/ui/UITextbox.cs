@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 namespace tasks;
 
 class UITextbox
@@ -5,7 +7,7 @@ class UITextbox
     public Rectangle Rect { get => rect; set => rect = value; }
     public Color BodyColor { get => bodyColor; set => bodyColor = value; }
     public Color TextColor { get => textColor; set => textColor = value; }
-    public string TextboxText => Text;
+    public string TextboxText => tbInput.Text;
 
     const int beamWidth = 1;
     int showingFromIndex;
@@ -15,11 +17,12 @@ class UITextbox
     Color bodyColor;
     Color textColor;
     SpriteFont font;
+    int rightBoundCharacterIndex = -1;
+    int leftBoundCharacterIndex = 0;
 
-    string Text => tbInput.Text;
-    int BeamIndex => tbInput.BeamIndex;
-    int LastCharIndex => Text.Length - 1;
-    bool IsTextEmpty => Text.Length == 0;
+    //int BeamIndex => tbInput.BeamIndex;
+    int LastCharIndex => tbInput.Text.Length - 1;
+    bool IsTextEmpty => tbInput.Text.Length == 0;
 
     public UITextbox(GameWindow window, Point pos, int width, int maxTextLength, 
         Color bodyColor, Color textColor, SpriteFont font, string startText)
@@ -49,8 +52,53 @@ class UITextbox
 
     public void Draw(SpriteBatch spriteBatch)
     {
+        //Draw body and end the spriteBatch
         spriteBatch.FillRectangle(rect, bodyColor);
-        Vector2 textPos = Utils.CenteredTextPosInRect(rect, font, Text);
+        spriteBatch.End();
+
+        //Draw text
+        float textPosX = GetTextPositionX();
+
+        var beamSubstring = tbInput.Text.Substring(0, tbInput.BeamIndex);
+        var beamSubstringWidth = font.MeasureString(beamSubstring).X;
+        int beamPosX = (int)(textPosX + beamSubstringWidth - beamWidth/2);
+
+        if(beamPosX < rect.X) {
+            leftBoundCharacterIndex = tbInput.BeamIndex;
+            rightBoundCharacterIndex = -1;
+            textPosX = GetTextPositionX();
+        }
+
+        if(beamPosX > rect.X + rect.Width) {
+            rightBoundCharacterIndex = tbInput.BeamIndex - 1;
+            leftBoundCharacterIndex = -1;
+            textPosX = GetTextPositionX();
+        }
+
+        RasterizerState rasterizer = new() { ScissorTestEnable = true };
+
+        spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, null, null, rasterizer);
+        {
+            Rectangle previousScissorRect = spriteBatch.GraphicsDevice.ScissorRectangle;
+            spriteBatch.GraphicsDevice.ScissorRectangle = rect;
+
+            spriteBatch.DrawString(font, tbInput.Text, new Vector2(textPosX, rect.Y), textColor);
+
+            spriteBatch.GraphicsDevice.ScissorRectangle = previousScissorRect;
+        }
+        spriteBatch.End();
+
+        //Resume the spriteBatch
+        spriteBatch.Begin();
+
+        Rectangle beamRect = rect with { Width = beamWidth, X = beamPosX };
+        spriteBatch.FillRectangle(beamRect, Color.White);
+    }
+
+    public void DrawSubstring(SpriteBatch spriteBatch)
+    {
+        spriteBatch.FillRectangle(rect, bodyColor);
+        Vector2 textPos = Utils.CenteredTextPosInRect(rect, font, tbInput.Text);
 
         string visibleText = "";
 
@@ -58,11 +106,11 @@ class UITextbox
         {
             int toIndex = Utils.clamp(showingToIndex, 0, LastCharIndex);
             int visibleTextLength = toIndex - showingFromIndex + 1; 
-            visibleText = Text.Substring(showingFromIndex, visibleTextLength);
+            visibleText = tbInput.Text.Substring(showingFromIndex, visibleTextLength);
             spriteBatch.DrawString(font, visibleText, textPos, textColor);
         }
 
-        int localBeamIndex = BeamIndex - showingFromIndex;
+        int localBeamIndex = tbInput.BeamIndex - showingFromIndex;
         string textSubstring = visibleText.Substring(0, localBeamIndex);
         int substringWidth = (int)font.MeasureString(textSubstring).X;
         int beamXOffset = substringWidth - beamWidth/2;
@@ -72,12 +120,12 @@ class UITextbox
 
         //Do not use, the function doesnt handle situations where indexes are out of bounds for now
         var drawVisibleTextIndexes = () => {
-            textSubstring = Text.Substring(0, showingFromIndex);
+            textSubstring = tbInput.Text.Substring(0, showingFromIndex);
             substringWidth = (int)font.MeasureString(textSubstring).X;
 
             int leftXOffset = substringWidth - beamWidth/2;
 
-            textSubstring = Text.Substring(0, showingToIndex);
+            textSubstring = tbInput.Text.Substring(0, showingToIndex);
             substringWidth = (int)font.MeasureString(textSubstring).X;
 
             int rightXOffset = substringWidth - beamWidth/2;
@@ -98,16 +146,16 @@ class UITextbox
         }
 
         //Calculate new from and to indexes
-        int lastVisibleCharacterIndex = Utils.clamp(BeamIndex, 0, LastCharIndex);
-        int firstVisibleCharacterIndex = Utils.clamp(BeamIndex, 0, LastCharIndex);
+        int lastVisibleCharacterIndex = Utils.clamp(tbInput.BeamIndex, 0, LastCharIndex);
+        int firstVisibleCharacterIndex = Utils.clamp(tbInput.BeamIndex, 0, LastCharIndex);
 
-        if(BeamIndex > showingToIndex)
+        if(tbInput.BeamIndex > showingToIndex)
         {
             showingToIndex = lastVisibleCharacterIndex;
             UpdateShowingFromIndex();
         }
 
-        if(BeamIndex <= showingFromIndex)
+        if(tbInput.BeamIndex <= showingFromIndex)
         {
             showingFromIndex = firstVisibleCharacterIndex;
             UpdateShowingToIndex();
@@ -149,7 +197,7 @@ class UITextbox
 
         for(int i = index; i != end; i += dir)
         {
-            totalWidth += font.MeasureString(Text[i].ToString()).X;
+            totalWidth += font.MeasureString(tbInput.Text[i].ToString()).X;
 
             if(totalWidth > rect.Width)
                 break;
@@ -161,5 +209,30 @@ class UITextbox
         //Utils.print($"(from {index} to {strDir}) fit characters: {fitCharacters}");
 
         return fitCharacters;
+    }
+
+    float GetTextPositionX() 
+    {
+        float textPosX = rect.Location.X;
+
+        string visibleSubstring;
+
+        if(tbInput.Text.Length > 0)
+        {
+            if(rightBoundCharacterIndex != -1)
+                visibleSubstring = tbInput.Text.Substring(0, rightBoundCharacterIndex + 1);
+            else
+                visibleSubstring = tbInput.Text.Substring(leftBoundCharacterIndex);
+
+            var wholeMeasure = font.MeasureString(tbInput.Text);
+            var substringMeasure = font.MeasureString(visibleSubstring);
+
+            if(rightBoundCharacterIndex != -1)
+                textPosX += rect.Width - substringMeasure.X;
+            else
+                textPosX -= wholeMeasure.X - substringMeasure.X;
+        }
+
+        return textPosX;
     }
 }

@@ -7,6 +7,8 @@ class TextboxInput
     public event Action<char> OnAddingCharacter;
     public event Action OnDeletingCharacter;
 
+    public int DEBUG_BEAMINDEX { set => beamIndex = value; }
+
     const string avaliableCharaters = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890-=!@#$%^&*()_+[]{};':|\\\",./<>?`~ ";
     const int left = -1;
     const int right = 1;
