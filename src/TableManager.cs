@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 
 using static Lib.Utils;
@@ -6,6 +7,8 @@ namespace tasks;
 
 class TableFileManager
 {
+    const string fileExtension = ".json";
+
     public Card[]? LoadFile(string filepath)
     {
         if(!File.Exists(filepath))
@@ -22,10 +25,14 @@ class TableFileManager
         return Load(json);
     }
 
-    public bool SaveFile(UICard[] uiCards, string filepath)
+    public bool SaveFile(UICard[] uiCards, string filename)
     {
+        if(!filename.EndsWith(fileExtension)) {
+            filename = string.Concat(filename, fileExtension);
+        }
+
         Card[] savingCards = uiCards.Select(uiCard => uiCard.GeneratedCard).ToArray();
-        Save(savingCards, filepath);
+        Save(savingCards, filename);
         return true;
     }
 

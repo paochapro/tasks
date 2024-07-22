@@ -49,7 +49,7 @@ public partial class TasksProgram
             Height = btnSize.Y,
         };
 
-        saveButton.Click += (s, e) => CreateSaveDialog("Save", "Save as", this.Save, "Failed to save Save: ");
+        saveButton.Click += (s, e) => CreateSaveDialog("Save", "Save as", this.Save, "Failed to save. Save: ");
         loadButton.Click += (s, e) => CreateLoadDialog();
         generateButton.Click += (s, e) => GenerateRandomCards();
         
