@@ -31,7 +31,7 @@ class TableFileManager
 
     void Save(Card[] cards, string filepath)
     {
-        string json = JsonConvert.SerializeObject(cards);
+        string json = JsonConvert.SerializeObject(cards, Formatting.Indented);
 
         using(FileStream fs = new(filepath, FileMode.OpenOrCreate))
         using(StreamWriter writer = new StreamWriter(fs))

@@ -49,7 +49,7 @@ public partial class TasksProgram
             Height = btnSize.Y,
         };
 
-        saveButton.Click += (s, e) => CreateFileDialog("Save", "Save as", Save, "Failed to save file: ");
+        saveButton.Click += (s, e) => CreateSaveDialog("Save", "Save as", this.Save, "Failed to save Save: ");
         loadButton.Click += (s, e) => CreateLoadDialog();
         generateButton.Click += (s, e) => GenerateRandomCards();
         
@@ -60,17 +60,17 @@ public partial class TasksProgram
         rootContainer.AddChild(topPanel);
         rootContainer.AddChild(bottomPanel);
 
-        desktop.Root = rootContainer;
+        baseGuiDesktop.Root = rootContainer;
     }
 
-    protected void CreateFileDialog(string title, string labelText, Func<string, bool> handler, string failedMessage)
+    protected void CreateSaveDialog(string title, string labelText, Func<string, bool> handler, string failedMessage)
     {
         VerticalStackPanel panel = new();
         TextBox tb;
         Label label;
 
         tb = new() {
-            HintText = "Enter path",
+            HintText = "Enter table name",
             TextColor = Color.White
         };
 
@@ -87,13 +87,13 @@ public partial class TasksProgram
 
             if(!success) {
                 Dialog dialog = Dialog.CreateMessageBox("Error", failedMessage + text);
-                dialog.ShowModal(desktop);
+                dialog.ShowModal(popupWindowsDesktop);
             }
         };
 
         Dialog dialog = Dialog.CreateMessageBox(title, panel);
         dialog.ButtonOk.Click += (s, e) => click.Invoke(tb.Text);
-        dialog.ShowModal(desktop);
+        dialog.ShowModal(popupWindowsDesktop);
     }
 
     void CreateLoadDialog()
@@ -114,7 +114,7 @@ public partial class TasksProgram
 
         Dialog dialog = Dialog.CreateMessageBox("Load", panel);
         dialog.ButtonOk.Click += (s, e) => {};
-        dialog.ShowModal(desktop);
+        dialog.ShowModal(popupWindowsDesktop);
     }
 
     public void CreateColorWheelDialog(UICard card)
@@ -145,6 +145,6 @@ public partial class TasksProgram
 
         var dialog = Dialog.CreateMessageBox("Choose card color", new ColorPickerPanel());
         dialog.ButtonOk.Click += (s, e) => onAccept.Invoke(card, dialog);
-        dialog.ShowModal(desktop);
+        dialog.ShowModal(popupWindowsDesktop);
     }
 }

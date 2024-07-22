@@ -8,7 +8,9 @@ public partial class TasksProgram : BaseGame
 {
     public SpriteFont TextFont => textFont;
 
-    Desktop desktop;
+    Desktop baseGuiDesktop;
+    Desktop popupWindowsDesktop;
+
     TableFileManager tableFileManager;
 
     List<UICard> uiCards = new();
@@ -241,7 +243,7 @@ public partial class TasksProgram : BaseGame
         
         spriteBatch.Begin();
         {
-            desktop.Render();
+            baseGuiDesktop.Render();
 
             //Drawing cards
             foreach(UICard card in uiCards)
@@ -266,12 +268,15 @@ public partial class TasksProgram : BaseGame
                 draggedTask.Draw(spriteBatch);
         }
         spriteBatch.End();
+
+        popupWindowsDesktop.Render();
     }
 
     protected override void LoadAssets()
     {
         Myra.MyraEnvironment.Game = this;
-        desktop = new();
+        baseGuiDesktop = new();
+        popupWindowsDesktop = new();
         tableFileManager = new();
         textFont = Assets.GetDefault<SpriteFont>();
 
