@@ -1,3 +1,5 @@
+using Myra.Graphics2D;
+using Myra.Graphics2D.Brushes;
 using Myra.Graphics2D.UI;
 using Myra.Graphics2D.UI.ColorPicker;
 
@@ -8,20 +10,26 @@ public partial class TasksProgram
     VerticalStackPanel rootContainer;
     const string tablesPath = "tables/";
 
+    public readonly Color topPanelBgColor = new(100,100,100,255);
+    const int bottomBarHeight = 200;
+
     void CreateUI()
     {
         rootContainer = new();
 
-        HorizontalStackPanel fillerPanel = new() {
+        //Top panel is filler panel that occupies the whole top space (where cards are drawn)
+        HorizontalStackPanel topPanel = new() {
             Width = Screen.X,
-            Height = Screen.Y - bottomBarRect.Height,
+            Height = Screen.Y - bottomBarHeight,
+            Background = new SolidBrush(topPanelBgColor)
         };
 
         HorizontalStackPanel bottomPanel = new() {
-            Width = bottomBarRect.Width - cardBinRect.Width,
-            Height = bottomBarRect.Height,
+            Width = Screen.X,
+            Height = bottomBarHeight,
+            Background = new SolidBrush(topPanelBgColor.DarkenBy(20))
         };
-
+        
         TextButton saveButton, loadButton, generateButton;
         Point btnSize = new(200,50);
 
@@ -49,7 +57,7 @@ public partial class TasksProgram
         bottomPanel.AddChild(loadButton);
         bottomPanel.AddChild(generateButton);
 
-        rootContainer.AddChild(fillerPanel);
+        rootContainer.AddChild(topPanel);
         rootContainer.AddChild(bottomPanel);
 
         desktop.Root = rootContainer;
@@ -133,17 +141,9 @@ public partial class TasksProgram
             if(obj is Dialog dialog) {
                 card.UpdateColor((dialog.Content as ColorPickerPanel).Color);
             }
-
-            //Needs regex
-            //byte[] rgb = strColor.Split(",").Select(val => byte.Parse(val)).ToArray();
-            //Color color = new(rgb[0], rgb[1], rgb[2]);
-            //card.UpdateColor(colorDialog.Color);
         };
 
-        //Dialog dialog = Dialog.CreateMessageBox("Color", panel);
         var dialog = Dialog.CreateMessageBox("Choose card color", new ColorPickerPanel());
-        //dialog.Title = "Choose card color";
-        //dialog.Content = new ColorPickerPanel();
         dialog.ButtonOk.Click += (s, e) => onAccept.Invoke(card, dialog);
         dialog.ShowModal(desktop);
     }

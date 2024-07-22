@@ -5,7 +5,7 @@ public abstract class BaseGame : Game
     public GraphicsDeviceManager Graphics => graphics;
     public Assets Assets => assets;
     public bool DebugMode => debugMode;
-    public readonly Color clearColor = new(100,100,100,255);
+    public readonly Color clearColor = Color.Magenta;
 
     protected bool debugMode;
     protected Point Screen

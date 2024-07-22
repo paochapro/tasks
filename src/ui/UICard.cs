@@ -216,12 +216,6 @@ public class UICard : UIElement
 
         if(Input.LBReleased())
             elementState = ElementState.Default;
-
-        if(program.CardBinRect.Contains(Input.Mouse.Position) && 
-            elementState != ElementState.BeingDragged)
-        {
-            isQueuedForRemoval = true;
-        }
     }
 
     void UpdateRenaming(float dt)

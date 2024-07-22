@@ -6,7 +6,6 @@ namespace tasks;
 
 public partial class TasksProgram : BaseGame
 {
-    public Rectangle CardBinRect => cardBinRect;
     public SpriteFont TextFont => textFont;
 
     Desktop desktop;
@@ -19,11 +18,6 @@ public partial class TasksProgram : BaseGame
 
     //Other stuff
     const int cardStartOffset = 16;
-    const int bottomBarHeight = 200;
-    const int cardBinWidth = 300;
-
-    Rectangle cardBinRect;
-    Rectangle bottomBarRect;
 
     List<Color> listOfColors;
     List<Color> currentListOfColors;
@@ -247,9 +241,11 @@ public partial class TasksProgram : BaseGame
         
         spriteBatch.Begin();
         {
+            desktop.Render();
+
             //Drawing bottom bar
-            spriteBatch.FillRectangle(bottomBarRect, clearColor.DarkenBy(20));
-            spriteBatch.FillRectangle(cardBinRect, clearColor.DarkenBy(40));
+            //spriteBatch.FillRectangle(bottomBarRect, clearColor.DarkenBy(20));
+            //spriteBatch.FillRectangle(cardBinRect, clearColor.DarkenBy(40));
 
             //Drawing cards
             foreach(UICard card in uiCards)
@@ -274,8 +270,6 @@ public partial class TasksProgram : BaseGame
                 draggedTask.Draw(spriteBatch);
         }
         spriteBatch.End();
-
-        desktop.Render();
     }
 
     protected override void LoadAssets()
@@ -296,10 +290,6 @@ public partial class TasksProgram : BaseGame
 
         currentListOfColors = listOfColors.ToList();
 
-        //Bottom bar rects
-        bottomBarRect = new Rectangle(0, Screen.Y - bottomBarHeight, Screen.X, bottomBarHeight);
-        cardBinRect = bottomBarRect with { Width = cardBinWidth, X = bottomBarRect.Right - cardBinWidth };
-        
         CreateUI();
     }
 
