@@ -5,8 +5,7 @@ namespace tasks;
 public class UITaskBox : UIElement
 {
     public static readonly Color hoverColorAddition = new Color(10, 10, 10);
-    public static readonly Color bodyColor = new(70, 70, 70);
-    public static readonly Color checkboxColor = new(60, 60, 60);
+    public static readonly Color defaultBodyColor = new(60, 60, 60);
     public const int checkboxSize = 24;
     public const int taskHeight = 32;
     public const int taskMargin = 4;
@@ -59,7 +58,7 @@ public class UITaskBox : UIElement
         textMarginX = textY;
         int tbWidth = taskWidth - (checkboxSize + checkboxMargin * 2) - textMarginX;
 
-        tbBodyColor = bodyColor.DarkenBy(40);
+        tbBodyColor = defaultBodyColor.DarkenBy(40);
         tbTextColor = Color.White;
         tbCreator = new(program.Window, tbWidth, 9999, tbBodyColor, tbTextColor, font);
     }
@@ -133,24 +132,19 @@ public class UITaskBox : UIElement
         }
     }
 
-    public void Draw(SpriteBatch spriteBatch)
+    public void Draw(SpriteBatch spriteBatch, Color bodyColor)
     {
         Point checkboxPos = new(rectangle.Right - checkboxSize - checkboxMargin, rectangle.Bottom - checkboxSize - checkboxMargin);
         Rectangle checkbox = new Rectangle(checkboxPos, new Point(checkboxSize,checkboxSize));
 
-        Color rectColor = new Color();
-        Color checkBoxColor = new Color();
+        Color checkBoxColor = bodyColor.DarkenBy(10);
 
         if (hover) {
-            rectColor = bodyColor;
-            checkBoxColor = checkboxColor;
-        }
-        else {
-            rectColor = new Color(bodyColor.ToVector3() - hoverColorAddition.ToVector3());
-            checkBoxColor = new Color(checkboxColor.ToVector3() - hoverColorAddition.ToVector3());
+            bodyColor = new Color(bodyColor.ToVector3() + hoverColorAddition.ToVector3());
+            checkBoxColor = new Color(checkBoxColor.ToVector3() + hoverColorAddition.ToVector3());
         }
 
-        spriteBatch.FillRectangle(rectangle, rectColor);
+        spriteBatch.FillRectangle(rectangle, bodyColor);
         spriteBatch.FillRectangle(checkbox, checkBoxColor);
 
         if (isChecked)
@@ -167,6 +161,9 @@ public class UITaskBox : UIElement
         else
             DrawDescription(spriteBatch);
     }
+
+    public void Draw(SpriteBatch spriteBatch) => Draw(spriteBatch, defaultBodyColor);
+
 
     void DrawDescription(SpriteBatch spriteBatch)
     {

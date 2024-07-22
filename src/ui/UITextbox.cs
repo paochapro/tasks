@@ -34,7 +34,7 @@ class UITextbox
 
         rect.Location = pos;
         rect.Width = width;
-        rect.Height = (int)font.MeasureString(Text).Y;
+        rect.Height = (int)font.MeasureString("a").Y;
 
         showingFromIndex = 0;
         showingToIndex = 0;

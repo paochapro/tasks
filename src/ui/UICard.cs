@@ -10,7 +10,7 @@ public class UICard : UIElement
     public const int rectWidth = 256;
     public const int bannerHeight = 32;
     public const int cardButtonsWidth = 32;
-    public const int bottomAddition = 4;
+    public const int bottomAddition = 2;
 
     //Generate card
     public Card GeneratedCard {
@@ -171,7 +171,10 @@ public class UICard : UIElement
         spriteBatch.Draw(colorWheelTexture, colorWheelRect, colorWheelButtonClr);
 
         //Task boxes
-        uiTaskBoxes.ForEach(tb => tb.Draw(spriteBatch));
+        if(isCompleted)
+            uiTaskBoxes.ForEach(tb => tb.Draw(spriteBatch, bannerColor));
+        else
+            uiTaskBoxes.ForEach(tb => tb.Draw(spriteBatch));
 
         //Draw place taskbox rect
         if(dragTask != null)
@@ -387,7 +390,7 @@ public class UICard : UIElement
         const int buttonsHoverLightenValue = 30;
         const int bannerTitleDarkenValue = 140;
 
-        completedBodyColor = bannerColor.DarkenBy(20);
+        completedBodyColor = bannerColor.DarkenBy(60);
 
         buttonsDefaultColor         = bannerColor.DarkenBy(buttonsDarkenValue);
         buttonsHoverColor           = buttonsDefaultColor.LightenBy(buttonsHoverLightenValue);
@@ -398,7 +401,7 @@ public class UICard : UIElement
 
         tbBodyColor = bannerColor.DarkenBy(40);
         tbTextColor = Color.White;
-        renameTbCreator = new UITextboxCreator(program.Window, cardTitleMaxWidth, 9999, tbBodyColor, tbTextColor, font);
+        renameTbCreator = new UITextboxCreator(program.Window, cardTitleMaxWidth, -1, tbBodyColor, tbTextColor, font);
     }
 
     void AddTask(UITaskBox taskBox)

@@ -126,7 +126,7 @@ class TextboxInput
 
         bool canAddCharacter = (
             avaliableCharaters.Contains(character) &&
-            text.Length < maxTextLength
+            (text.Length < maxTextLength || maxTextLength < 0)
         );
 
         if(canAddCharacter)

@@ -93,6 +93,9 @@ internal static class Utils
     //Text
     public static Vector2 CenteredTextPosInRect(Rectangle rect, SpriteFont font, string text, float measureScale = 1.0f)
     {
+        if(text == "")
+            text = "a";
+
         Vector2 rectPos = rect.Location.ToVector2();
         Vector2 measure = font.MeasureString(text) * measureScale;
         float y = rectPos.Y + (rect.Height / 2 - measure.Y / 2);
