@@ -42,6 +42,7 @@ public class UICard : UIElement
     bool isQueuedForRemoval;
     UITextboxCreator renameTbCreator;
     ElementState elementState;
+    Point grabbingMouseOffset;
 
     UITextbox? _renameTextbox;
     UITextbox? renameTextbox {
@@ -66,6 +67,7 @@ public class UICard : UIElement
     Color completedBodyColor;
     readonly int cardTitleMaxWidth;
     readonly int textMarginX;
+
 
     public UICard(TasksProgram program, Card card)
     {
@@ -208,14 +210,15 @@ public class UICard : UIElement
     //State updates
     void UpdateDragging(float dt)
     {
-        Vector2 mousePos = Input.Mouse.Position.ToVector2();
         Vector2 bannerSize = new Vector2(UICard.rectWidth, UICard.bannerHeight);
-        Vector2 dragCardPos = mousePos - bannerSize / 2;
+        Point dragCardPos = Input.Mouse.Position - grabbingMouseOffset;
 
-        UpdatePosition(dragCardPos.ToPoint());
+        UpdatePosition(dragCardPos);
 
-        if(Input.LBReleased())
+        if(Input.LBReleased()) {
             elementState = ElementState.Default;
+            grabbingMouseOffset = Point.Zero;        
+        }
     }
 
     void UpdateRenaming(float dt)
@@ -310,8 +313,10 @@ public class UICard : UIElement
         //3. Wants to rename it
         if(bannerRect.Contains(mousePos))
         {
-            if(Input.LBPressed())
+            if(Input.LBPressed()) {
                 elementState = ElementState.BeingDragged;
+                grabbingMouseOffset = mousePos - this.rectangle.Location;
+            }
 
             if(Input.MBPressed())
                 isQueuedForRemoval = true;

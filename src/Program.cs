@@ -243,10 +243,6 @@ public partial class TasksProgram : BaseGame
         {
             desktop.Render();
 
-            //Drawing bottom bar
-            //spriteBatch.FillRectangle(bottomBarRect, clearColor.DarkenBy(20));
-            //spriteBatch.FillRectangle(cardBinRect, clearColor.DarkenBy(40));
-
             //Drawing cards
             foreach(UICard card in uiCards)
             {
